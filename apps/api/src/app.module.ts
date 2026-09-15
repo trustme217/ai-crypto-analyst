@@ -18,7 +18,8 @@ import { HealthController } from './health.controller';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env', '../../.env'],
+      // Prefer monorepo root .env (TELEGRAM_BOT_TOKEN, JWT, etc.), then apps/api/.env
+      envFilePath: ['../../.env', '.env'],
     }),
     StoreModule,
     AuthModule,

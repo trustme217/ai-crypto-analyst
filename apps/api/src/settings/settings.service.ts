@@ -11,9 +11,20 @@ export class SettingsService {
 
   async get(userId: string) {
     const s = await this.store.getSettings(userId);
+    let botUsername: string | null = null;
+    if (this.telegram.isConfigured()) {
+      try {
+        const me = await this.telegram.getMe();
+        botUsername = me.username || null;
+      } catch {
+        botUsername = null;
+      }
+    }
     return {
       ...s,
       telegramBotConfigured: this.telegram.isConfigured(),
+      telegramBotUsername: botUsername,
+      telegramBotOk: Boolean(botUsername),
     };
   }
 
@@ -26,22 +37,42 @@ export class SettingsService {
     return this.store.updateSettings(userId, normalized);
   }
 
-  async testTelegram(userId: string) {
+  async testTelegram(userId: string, chatIdFromClient?: string) {
     if (!this.telegram.isConfigured()) {
-      throw new BadRequestException('Set TELEGRAM_BOT_TOKEN in the API .env first.');
+      throw new BadRequestException('Set TELEGRAM_BOT_TOKEN in the root .env and restart the API.');
     }
-    const s = await this.store.getSettings(userId);
-    if (!s.telegramChatId?.trim()) {
-      throw new BadRequestException('Save a Telegram chat ID in settings first.');
+
+    // Prefer chat ID from the request (may not be saved yet)
+    let chatId = (chatIdFromClient || '').trim();
+    if (chatId) {
+      await this.store.updateSettings(userId, { telegramChatId: chatId });
+    } else {
+      const s = await this.store.getSettings(userId);
+      chatId = (s.telegramChatId || '').trim();
     }
-    await this.telegram.sendMessage(
-      s.telegramChatId,
-      'ACA test: Telegram alerts are connected. Price alerts will notify this chat.',
-    );
-    return { ok: true };
+    if (!chatId) {
+      throw new BadRequestException(
+        'Enter a Telegram chat ID first (message your bot, then paste the numeric ID or pick a discovered chat).',
+      );
+    }
+
+    try {
+      await this.telegram.getMe();
+      await this.telegram.sendMessage(
+        chatId,
+        'ACA test: Telegram alerts are connected. Price alerts will notify this chat.',
+      );
+    } catch (err) {
+      throw new BadRequestException((err as Error).message);
+    }
+    return { ok: true, chatId };
   }
 
-  recentTelegramChats() {
-    return this.telegram.recentChatIds();
+  async recentTelegramChats() {
+    try {
+      return await this.telegram.recentChatIds();
+    } catch (err) {
+      throw new BadRequestException((err as Error).message);
+    }
   }
 }

@@ -330,14 +330,19 @@ export const api = {
       telegramAlerts: boolean;
       telegramChatId: string | null;
       telegramBotConfigured?: boolean;
+      telegramBotUsername?: string | null;
+      telegramBotOk?: boolean;
       signalStyle: 'conservative' | 'balanced' | 'aggressive';
       currency: string;
       updatedAt: string;
     }>('/settings'),
   updateSettings: (patch: Record<string, unknown>) =>
     request('/settings', { method: 'PATCH', body: JSON.stringify(patch) }),
-  testTelegram: () =>
-    request<{ ok: boolean }>('/settings/telegram/test', { method: 'POST', body: '{}' }),
+  testTelegram: (chatId?: string) =>
+    request<{ ok: boolean; chatId?: string }>('/settings/telegram/test', {
+      method: 'POST',
+      body: JSON.stringify({ chatId }),
+    }),
   telegramChats: () =>
     request<{
       configured: boolean;

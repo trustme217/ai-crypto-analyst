@@ -69,12 +69,21 @@ export default function SettingsPage() {
   }
 
   async function onTestTelegram() {
+    if (!settings) return;
     setTesting(true);
     setMessage(null);
     setError(null);
     try {
-      await api.testTelegram();
-      setMessage('Test message sent to Telegram.');
+      // Persist chat ID from the form before sending (avoids testing a stale/empty saved value)
+      if (settings.telegramChatId?.trim()) {
+        await api.updateSettings({
+          telegramChatId: settings.telegramChatId.trim(),
+          telegramAlerts: settings.telegramAlerts,
+        });
+      }
+      await api.testTelegram(settings.telegramChatId?.trim() || undefined);
+      setMessage('Test message sent to Telegram. Check your chat with the bot.');
+      await load();
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -146,20 +155,78 @@ export default function SettingsPage() {
           </div>
           <div className="field">
             <label htmlFor="ccy">Currency</label>
-            <input
+            <select
               id="ccy"
-              value={settings.currency}
+              value={
+                [
+                  'USD',
+                  'EUR',
+                  'GBP',
+                  'JPY',
+                  'KRW',
+                  'CNY',
+                  'HKD',
+                  'SGD',
+                  'AUD',
+                  'CAD',
+                  'CHF',
+                  'INR',
+                  'BRL',
+                  'TRY',
+                  'AED',
+                  'BTC',
+                  'ETH',
+                ].includes(settings.currency)
+                  ? settings.currency
+                  : 'USD'
+              }
               onChange={(e) => setSettings({ ...settings, currency: e.target.value })}
-            />
+            >
+              {[
+                { code: 'USD', label: 'USD — US Dollar' },
+                { code: 'EUR', label: 'EUR — Euro' },
+                { code: 'GBP', label: 'GBP — British Pound' },
+                { code: 'JPY', label: 'JPY — Japanese Yen' },
+                { code: 'KRW', label: 'KRW — Korean Won' },
+                { code: 'CNY', label: 'CNY — Chinese Yuan' },
+                { code: 'HKD', label: 'HKD — Hong Kong Dollar' },
+                { code: 'SGD', label: 'SGD — Singapore Dollar' },
+                { code: 'AUD', label: 'AUD — Australian Dollar' },
+                { code: 'CAD', label: 'CAD — Canadian Dollar' },
+                { code: 'CHF', label: 'CHF — Swiss Franc' },
+                { code: 'INR', label: 'INR — Indian Rupee' },
+                { code: 'BRL', label: 'BRL — Brazilian Real' },
+                { code: 'TRY', label: 'TRY — Turkish Lira' },
+                { code: 'AED', label: 'AED — UAE Dirham' },
+                { code: 'BTC', label: 'BTC — Bitcoin' },
+                { code: 'ETH', label: 'ETH — Ethereum' },
+              ].map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           <h3 className="panel-title" style={{ marginTop: '1.25rem' }}>
             Telegram alerts
           </h3>
           <p className="muted" style={{ marginBottom: '0.75rem', fontSize: '0.85rem' }}>
-            {settings.telegramBotConfigured
-              ? 'Bot token is configured on the API. Save your chat ID, then create price alerts.'
-              : 'Add TELEGRAM_BOT_TOKEN to the root .env and restart the API.'}
+            {!settings.telegramBotConfigured &&
+              'Add TELEGRAM_BOT_TOKEN to the root .env (wrap in quotes) and restart the API.'}
+            {settings.telegramBotConfigured && settings.telegramBotOk === false && (
+              <span className="error">
+                Bot token is set but Telegram rejected it (invalid/revoked). Create a new token in
+                BotFather, update .env, restart API.
+              </span>
+            )}
+            {settings.telegramBotConfigured && settings.telegramBotOk !== false && (
+              <>
+                Bot connected
+                {settings.telegramBotUsername ? ` (@${settings.telegramBotUsername})` : ''}. Open it
+                in Telegram → Start → paste your numeric chat ID below → Send test.
+              </>
+            )}
           </p>
           <label className="muted" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             <input
@@ -204,7 +271,12 @@ export default function SettingsPage() {
             <button
               className="btn secondary"
               type="button"
-              disabled={testing || !settings.telegramBotConfigured}
+              disabled={
+                testing ||
+                !settings.telegramBotConfigured ||
+                settings.telegramBotOk === false ||
+                !settings.telegramChatId?.trim()
+              }
               onClick={onTestTelegram}
             >
               {testing ? 'Sending…' : 'Send test to Telegram'}
