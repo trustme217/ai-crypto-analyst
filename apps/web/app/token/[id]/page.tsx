@@ -5,10 +5,13 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { api, formatPct, formatUsd, type AnalysisResult, type CoinDetail } from '@/lib/api';
 
+type HolderIntel = Awaited<ReturnType<typeof api.holders>>;
+
 export default function TokenPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
   const [coin, setCoin] = useState<CoinDetail | null>(null);
+  const [holders, setHolders] = useState<HolderIntel | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
@@ -20,9 +23,14 @@ export default function TokenPage() {
   useEffect(() => {
     setLoading(true);
     Promise.all([api.coin(id), api.isWatched(id).catch(() => false)])
-      .then(([c, watched]) => {
+      .then(async ([c, watched]) => {
         setCoin(c);
         setWatching(watched);
+        try {
+          setHolders(await api.holders(c.id, c.symbol));
+        } catch {
+          setHolders(null);
+        }
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
@@ -167,6 +175,80 @@ export default function TokenPage() {
           </div>
           {watchMsg && <p className="muted">{watchMsg}</p>}
           {error && <p className="error">{error}</p>}
+        </div>
+
+        <div className="panel">
+          <h3 className="panel-title">Holder intelligence</h3>
+          {!holders && <p className="muted">Loading distribution metrics…</p>}
+          {holders && (
+            <>
+              <p className="muted" style={{ fontSize: '0.8rem', marginBottom: '0.75rem' }}>
+                Source: {holders.source} · quality {holders.holderQualityScore}/100 (feeds Token Score
+                Hold 15%)
+              </p>
+              <div className="stats">
+                <div className="stat">
+                  <div className="label">Holders</div>
+                  <div className="value">{holders.holders.toLocaleString()}</div>
+                </div>
+                <div className="stat">
+                  <div className="label">Top 10 %</div>
+                  <div className="value">{holders.top10Pct}%</div>
+                </div>
+                <div className="stat">
+                  <div className="label">Top 20 %</div>
+                  <div className="value">{holders.top20Pct}%</div>
+                </div>
+                <div className="stat">
+                  <div className="label">Concentration</div>
+                  <div className="value">{holders.holderConcentration}%</div>
+                </div>
+                <div className="stat">
+                  <div className="label">Smart money</div>
+                  <div className="value">{holders.smartMoneyOwnership}%</div>
+                </div>
+                <div className="stat">
+                  <div className="label">Whales</div>
+                  <div className="value">{holders.whaleOwnership}%</div>
+                </div>
+                <div className="stat">
+                  <div className="label">Creator</div>
+                  <div className="value">{holders.creatorOwnership}%</div>
+                </div>
+              </div>
+              {holders.alerts.map((a) => (
+                <div
+                  key={a.type + a.detail}
+                  style={{
+                    marginTop: '0.85rem',
+                    padding: '0.75rem 0.9rem',
+                    border: '1px solid var(--line)',
+                    borderRadius: 12,
+                    background: 'var(--panel-2)',
+                  }}
+                >
+                  <strong>
+                    {a.risk === 'HIGH' ? '⚠ ' : ''}
+                    {a.title}
+                  </strong>
+                  <div className="muted" style={{ marginTop: '0.35rem', fontSize: '0.9rem' }}>
+                    {a.detail}
+                  </div>
+                  <div style={{ marginTop: '0.35rem', fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>
+                    Risk: <span className={a.risk === 'HIGH' ? 'down' : ''}>{a.risk}</span>
+                  </div>
+                </div>
+              ))}
+              {holders.distributionChanges.length > 0 && (
+                <p className="muted" style={{ marginTop: '0.75rem', fontSize: '0.8rem' }}>
+                  Distribution changes:{' '}
+                  {holders.distributionChanges
+                    .map((d) => `${d.metric} ${d.delta > 0 ? '+' : ''}${d.delta}`)
+                    .join(' · ')}
+                </p>
+              )}
+            </>
+          )}
         </div>
 
         <div className="panel">

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { MarketService } from '../market/market.service';
 import { TokenScoreService, type TokenScoreBreakdown } from '../scoring/token-score.service';
 import { SmartMoneyService } from '../smart-money/smart-money.service';
+import { HoldersService } from '../holders/holders.service';
 
 export type TradingSignal = {
   id: string;
@@ -20,6 +21,7 @@ export type TradingSignal = {
   change7d?: number | null;
   volMcap?: number;
   scores: TokenScoreBreakdown;
+  holderAlerts?: Array<{ title: string; risk: string; detail: string }>;
   generatedAt: string;
 };
 
@@ -42,6 +44,7 @@ export class SignalsService {
     private readonly market: MarketService,
     private readonly tokenScore: TokenScoreService,
     private readonly smartMoney: SmartMoneyService,
+    private readonly holders: HoldersService,
   ) {}
 
   async list(style: 'conservative' | 'balanced' | 'aggressive' = 'balanced'): Promise<{
@@ -69,6 +72,12 @@ export class SignalsService {
       const volMcap = c.market_cap > 0 ? c.total_volume / c.market_cap : 0;
 
       const sm = await this.smartMoney.scoreForSymbol(c.symbol.toUpperCase(), 60);
+      const hold = await this.holders.qualityScoreFor(
+        c.id,
+        c.symbol,
+        c.market_cap,
+        c.market_cap_rank,
+      );
       const scores = this.tokenScore.score({
         symbol: c.symbol,
         price,
@@ -78,6 +87,7 @@ export class SignalsService {
         change7d,
         marketCapRank: c.market_cap_rank,
         smartMoneyScore: sm,
+        holderQualityScore: hold.holderQualityScore,
       });
 
       let side: TradingSignal['side'] = 'neutral';
@@ -104,7 +114,7 @@ export class SignalsService {
       const rationale =
         `Token score ${scores.score}/100 (SM ${scores.smartMoney}, Liq ${scores.liquidity}, Vol ${scores.volume}, ` +
         `Mom ${scores.momentum}, Hold ${scores.holderQuality}, Risk ${scores.risk}). ` +
-        `Deterministic — not LLM. Research only.`;
+        `Top10 ${hold.top10Pct}%. Deterministic — not LLM. Research only.`;
 
       signals.push({
         id: `${c.id}-${side}-${scores.score}`,
@@ -123,6 +133,11 @@ export class SignalsService {
         change7d,
         volMcap,
         scores,
+        holderAlerts: hold.alerts.map((a) => ({
+          title: a.title,
+          risk: a.risk,
+          detail: a.detail,
+        })),
         generatedAt: new Date().toISOString(),
       });
     }

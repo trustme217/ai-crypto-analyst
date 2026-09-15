@@ -9,6 +9,7 @@ Research desk for crypto markets + Solana + AI briefs + paper alerts/copy.
 | Market | CoinGecko **top-by-cap** overview, search, token detail, heatmap |
 | Signals | **Token Score** (SM 30% / Liq 15% / Vol 15% / Mom 15% / Hold 15% / Risk 10%) — deterministic |
 | Smart money | Tracked wallets + **RPC ingest → normalized events → analytics** (`/smart-money`) |
+| Holders | Distribution intel (top 10/20, SM/whale/creator, concentration alerts) |
 | Portfolio | Paper positions with live PnL |
 | Copy trading | Follow demo desks → **simulated paper fills** |
 | Alerts | Price above/below → **Telegram** (with retries) |

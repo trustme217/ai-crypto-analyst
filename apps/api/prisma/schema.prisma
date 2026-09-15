@@ -257,3 +257,23 @@ model WalletNormalizedEvent {
   @@index([type, timestamp])
 }
 
+/// Token holder distribution snapshots (AlphaMind phase 5)
+model TokenHolderSnapshot {
+  id                   String   @id @default(cuid())
+  coingeckoId          String
+  symbol               String
+  holders              Int
+  holderConcentration  Float
+  top10Pct             Float
+  top20Pct             Float
+  smartMoneyOwnership  Float
+  whaleOwnership       Float
+  creatorOwnership     Float
+  holderQualityScore   Float
+  source               String   @default("estimated")
+  createdAt            DateTime @default(now())
+
+  @@index([coingeckoId, createdAt])
+  @@index([symbol, createdAt])
+}
+

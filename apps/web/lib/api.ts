@@ -166,6 +166,38 @@ export const api = {
       `/market/search?q=${encodeURIComponent(q)}`,
     ),
   coin: (id: string) => request<CoinDetail>(`/market/coins/${encodeURIComponent(id)}`),
+  holders: (coingeckoId: string, symbol?: string) =>
+    request<{
+      coingeckoId: string;
+      symbol: string;
+      holders: number;
+      holderConcentration: number;
+      top10Pct: number;
+      top20Pct: number;
+      smartMoneyOwnership: number;
+      whaleOwnership: number;
+      creatorOwnership: number;
+      holderQualityScore: number;
+      distributionChanges: Array<{
+        metric: string;
+        before: number;
+        now: number;
+        delta: number;
+      }>;
+      alerts: Array<{
+        type: string;
+        title: string;
+        before: number;
+        now: number;
+        risk: 'LOW' | 'MEDIUM' | 'HIGH';
+        detail: string;
+      }>;
+      source: string;
+      snapshotAt: string;
+      previousSnapshotAt: string | null;
+    }>(
+      `/holders/${encodeURIComponent(coingeckoId)}${symbol ? `?symbol=${encodeURIComponent(symbol)}` : ''}`,
+    ),
   analyze: (coingeckoId: string, timeframe = '1d') =>
     request<AnalysisResult>('/analysis', {
       method: 'POST',
