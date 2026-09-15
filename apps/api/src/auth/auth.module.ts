@@ -12,10 +12,18 @@ import { JwtStrategy } from './jwt.strategy';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        secret: config.get<string>('JWT_SECRET') || 'dev-secret',
-        signOptions: { expiresIn: '7d' },
-      }),
+      useFactory: (config: ConfigService) => {
+        const secret = (config.get<string>('JWT_SECRET') || '').trim();
+        if (!secret || secret === 'dev-secret' || secret === 'change-me-in-real-use') {
+          console.warn(
+            '[auth] JWT_SECRET is weak/default — set a long random JWT_SECRET in .env before any shared deploy.',
+          );
+        }
+        return {
+          secret: secret || 'dev-secret-local-only',
+          signOptions: { expiresIn: '24h' },
+        };
+      },
     }),
   ],
   providers: [AuthService, JwtStrategy],

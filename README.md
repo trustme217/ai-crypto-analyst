@@ -1,40 +1,35 @@
 # AI Crypto Analyst (MVP)
 
-Research desk for crypto markets + Solana + AI briefs.
-
-Built from your shared ChatGPT prompts:
-
-1. NestJS + Prisma schema target + Next.js + Python AI + Solana
-2. No Docker, MVP only (not production)
+Research desk for crypto markets + Solana + AI briefs + paper alerts/copy.
 
 ## What’s in the MVP
 
 | Area | Capability |
 |------|------------|
-| Market | CoinGecko overview, search, token detail |
-| Signals | AI trading signals (long/short/neutral + SL/TP) |
+| Market | CoinGecko **top-by-cap** overview, search, token detail, heatmap |
+| Signals | Heuristic momentum (24h/7d + vol/mcap) — labeled, not LLM |
 | Portfolio | Paper positions with live PnL |
-| Copy trading | Follow demo desks (paper only) |
-| Alerts | Price above/below → Telegram bot notification |
-| Watchlist | Guest browser save or account sync — Watch on token page |
+| Copy trading | Follow demo desks → **simulated paper fills** |
+| Alerts | Price above/below → **Telegram** (with retries) |
+| Watchlist | Guest/account sync — **Alert** shortcut from watchlist |
 | Settings | Risk, signal style, Telegram chat ID |
 | AI | Analyze token → sentiment / score / thesis |
-| Chat | Research assistant |
+| Chat | Session-based research assistant |
 | Solana | Public wallet lookup |
-| Auth | Register / login (JWT) |
+| Auth | Register / login (JWT 24h) |
+| Size | Paper notional → token size estimator (`/swap`) |
 
-**Skipped for MVP:** Docker, Redis/BullMQ, trading, custody, production hardening.
+**Out of scope:** Docker, Redis/BullMQ, live trading, custody, real DEX swaps.
 
 ## Stack
 
 ```
 apps/web   Next.js UI                 :3000
-apps/api   NestJS API + JSON store    :3001
+apps/api   NestJS + Prisma SQLite     :3001
 apps/ai    Python AI (stdlib server)  :8001
 ```
 
-Persistence is a local JSON file (`apps/api/data/store.json`) so the MVP runs with zero DB install.
-The Prisma-shaped schema lives at `apps/api/prisma/schema.prisma` for when you move to PostgreSQL.
+Persistence: SQLite at `apps/api/data/aca.db` via Prisma. Legacy `store.json` is imported once if present.
 
 ## Setup
 
@@ -43,33 +38,30 @@ cp .env.example .env
 npm install
 ```
 
-Optional: set `OPENAI_API_KEY` in `.env` for LLM mode. Heuristic mode works without it.
+API `start:dev` runs `prisma generate` + `prisma db push` automatically.
+
+Optional: `OPENAI_API_KEY` for LLM mode. Heuristic AI works without it.
 
 ### Telegram price alerts
 
-1. Create a bot with [BotFather](https://t.me/BotFather) and put the token in `.env` as `TELEGRAM_BOT_TOKEN`.
-2. Restart the API (`npm run dev`).
-3. Open the bot in Telegram and send any message (e.g. `/start`).
-4. Sign in → **Settings** → pick your chat (or paste chat ID) → enable Telegram alerts → **Send test**.
-5. Create a price alert on **Alerts**. When the level is hit, the bot messages that chat.
+1. Create a bot with [BotFather](https://t.me/BotFather); set `TELEGRAM_BOT_TOKEN` in `.env`.
+2. Restart API; message the bot `/start`.
+3. Settings → pick chat ID → enable Telegram → Send test.
+4. Create alerts on **Alerts**. Hits notify Telegram (failed sends retry with backoff).
 
-Python uses only the standard library (works on Python 3.14 with no pip packages).
+### Auth
 
-## Run (one click)
+Set a long random `JWT_SECRET` (avoid defaults). Access tokens expire in **24h**. Register passwords require **8+** characters.
+
+## Run
 
 **Windows:** double-click `start.bat`
-
-Or from a terminal:
 
 ```bash
 npm run dev
 ```
 
-That starts AI (:8001), API (:3001), and Web (:3000) together.
-
 Open http://localhost:3000
-
-Optional individual processes:
 
 ```bash
 npm run dev:ai
@@ -77,21 +69,17 @@ npm run dev:api
 npm run dev:web
 ```
 
-## API map
+## API map (highlights)
 
-- `GET  /health`
-- `GET  /market/overview`
-- `GET  /market/search?q=`
-- `GET  /market/coins/:id`
-- `POST /analysis` `{ "coingeckoId": "solana" }`
-- `GET  /analysis/recent`
-- `POST /chat` `{ "message": "..." }`
-- `GET  /solana/wallet?address=`
-- `POST /auth/register` · `POST /auth/login`
-- `GET/POST/DELETE /watchlist` (JWT)
+- `GET  /market/overview` · `/market/search` · `/market/coins/:id`
+- `GET  /signals?style=`
+- `POST /analysis` · `POST /chat` · `GET/POST /chat/sessions`
+- `GET/POST/DELETE /alerts` · `GET/PATCH /settings` · Telegram test/chats
+- `GET  /copy-trading/leaders` · follows · trades
+- `POST /auth/register` · `/auth/login`
 
-## Next upgrades
+## Next upgrades (not in this MVP)
 
-1. Wire Prisma + PostgreSQL using `apps/api/prisma/schema.prisma`
-2. Add Redis + BullMQ for async analysis jobs
-3. Docker Compose, rate limits, stronger auth
+1. PostgreSQL instead of SQLite  
+2. Redis + BullMQ for jobs  
+3. HttpOnly cookie auth, Docker Compose, stronger rate limits  

@@ -1,4 +1,4 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { StoreService } from '../store/store.service';
 
@@ -13,9 +13,43 @@ export class ChatService {
     this.aiUrl = this.config.get<string>('AI_SERVICE_URL') || 'http://127.0.0.1:8001';
   }
 
-  async ask(message: string, userId?: string) {
+  async listSessions(userId: string) {
+    const sessions = await this.store.listChatSessions(userId);
+    return { sessions };
+  }
+
+  async createSession(userId: string, title?: string) {
+    const session = await this.store.createChatSession(userId, title || 'New research chat');
+    return { session };
+  }
+
+  async sessionMessages(userId: string, sessionId: string) {
+    const session = await this.store.getChatSession(userId, sessionId);
+    if (!session) throw new NotFoundException('Session not found');
+    const messages = await this.store.sessionMessages(userId, sessionId);
+    return {
+      session: {
+        id: session.id,
+        userId: session.userId,
+        title: session.title,
+        createdAt: session.createdAt.toISOString(),
+        updatedAt: session.updatedAt.toISOString(),
+      },
+      messages,
+    };
+  }
+
+  async ask(message: string, userId?: string, sessionId?: string) {
+    let sid = sessionId || null;
     if (userId) {
-      await this.store.createChat({ userId, role: 'user', content: message });
+      if (sid) {
+        const session = await this.store.getChatSession(userId, sid);
+        if (!session) throw new NotFoundException('Session not found');
+      } else {
+        const created = await this.store.createChatSession(userId);
+        sid = created.id;
+      }
+      await this.store.createChat({ userId, sessionId: sid, role: 'user', content: message });
     }
 
     let reply: { reply: string; mode: string };
@@ -34,11 +68,16 @@ export class ChatService {
       );
     }
 
-    if (userId) {
-      await this.store.createChat({ userId, role: 'assistant', content: reply.reply });
+    if (userId && sid) {
+      await this.store.createChat({
+        userId,
+        sessionId: sid,
+        role: 'assistant',
+        content: reply.reply,
+      });
     }
 
-    return reply;
+    return { ...reply, sessionId: sid };
   }
 
   async history(userId: string, limit = 40) {

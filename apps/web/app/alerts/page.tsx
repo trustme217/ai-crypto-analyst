@@ -15,6 +15,12 @@ export default function AlertsPage() {
   const [target, setTarget] = useState('80000');
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const coin = new URLSearchParams(window.location.search).get('coin');
+    if (coin) setCoingeckoId(coin);
+  }, []);
+
   async function load() {
     if (!isLoggedIn()) {
       setError('Sign in on Account to create price alerts.');

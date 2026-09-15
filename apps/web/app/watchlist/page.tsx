@@ -71,9 +71,17 @@ export default function WatchlistPage() {
                 </td>
                 <td>{item.name}</td>
                 <td>
-                  <button className="btn secondary" onClick={() => remove(item.coingeckoId)}>
-                    Remove
-                  </button>
+                  <div className="cta-row" style={{ justifyContent: 'flex-end' }}>
+                    <Link
+                      className="btn secondary"
+                      href={`/alerts?coin=${encodeURIComponent(item.coingeckoId)}`}
+                    >
+                      Alert
+                    </Link>
+                    <button className="btn secondary" onClick={() => remove(item.coingeckoId)}>
+                      Remove
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

@@ -36,13 +36,16 @@ export class MarketService {
   }
 
   async getOverview(limit = 20) {
-    return this.getCached(`overview:${limit}`, async () => {
-      const ids = 'bitcoin,ethereum,solana,ripple,cardano,dogecoin,chainlink,avalanche-2';
+    const perPage = Math.min(Math.max(limit, 8), 50);
+    return this.getCached(`overview:top:${perPage}`, async () => {
       const url =
-        `${this.baseUrl}/coins/markets?vs_currency=usd&ids=${ids}` +
-        `&order=market_cap_desc&per_page=${limit}&page=1&sparkline=true` +
-        `&price_change_percentage=24h`;
-      const markets = await this.fetchJson<MarketCoin[]>(url);
+        `${this.baseUrl}/coins/markets?vs_currency=usd` +
+        `&order=market_cap_desc&per_page=${perPage}&page=1&sparkline=true` +
+        `&price_change_percentage=24h,7d`;
+      type MarketRow = MarketCoin & {
+        price_change_percentage_7d_in_currency?: number | null;
+      };
+      const markets = await this.fetchJson<MarketRow[]>(url);
       let global: {
         data: {
           total_market_cap: { usd: number };
@@ -54,7 +57,6 @@ export class MarketService {
       try {
         global = await this.fetchJson(`${this.baseUrl}/global`);
       } catch {
-        // Prefer markets over failing the whole overview when /global is rate-limited
         global = {
           data: {
             total_market_cap: { usd: markets.reduce((s, c) => s + (c.market_cap || 0), 0) },

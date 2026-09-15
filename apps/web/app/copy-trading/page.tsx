@@ -7,6 +7,9 @@ import { api, formatPct, isLoggedIn, type CopyLeader } from '@/lib/api';
 export default function CopyTradingPage() {
   const [leaders, setLeaders] = useState<CopyLeader[]>([]);
   const [follows, setFollows] = useState<string[]>([]);
+  const [trades, setTrades] = useState<
+    Awaited<ReturnType<typeof api.copyTrades>>['trades']
+  >([]);
   const [disclaimer, setDisclaimer] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [alloc, setAlloc] = useState(10);
@@ -19,8 +22,11 @@ export default function CopyTradingPage() {
       if (isLoggedIn()) {
         const f = await api.copyFollows();
         setFollows(f.follows.map((x) => x.traderId));
+        const t = await api.copyTrades();
+        setTrades(t.trades);
       } else {
         setFollows([]);
+        setTrades([]);
       }
       setError(null);
     } catch (e) {
@@ -101,6 +107,51 @@ export default function CopyTradingPage() {
           </div>
         ))}
       </div>
+
+      {isLoggedIn() && (
+        <div className="panel" style={{ marginTop: '1.25rem' }}>
+          <h3 className="panel-title">Recent paper fills</h3>
+          {!trades.length && (
+            <p className="muted">No simulated fills yet — they appear every few minutes while you follow a desk.</p>
+          )}
+          {!!trades.length && (
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>When</th>
+                  <th>Desk</th>
+                  <th>Side</th>
+                  <th>Asset</th>
+                  <th>Qty</th>
+                  <th>Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                {trades.map((t) => (
+                  <tr key={t.id}>
+                    <td className="muted" style={{ fontSize: '0.8rem' }}>
+                      {new Date(t.createdAt).toLocaleString()}
+                    </td>
+                    <td>{t.traderId}</td>
+                    <td>
+                      <span className={`pill ${t.side === 'buy' ? 'bullish' : 'bearish'}`}>{t.side}</span>
+                    </td>
+                    <td>
+                      <Link href={`/token/${t.coingeckoId}`}>
+                        <strong>{t.symbol}</strong>
+                      </Link>
+                    </td>
+                    <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>{t.quantity}</td>
+                    <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>
+                      ${t.priceUsd.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
     </main>
   );
 }

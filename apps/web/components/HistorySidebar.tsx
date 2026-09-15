@@ -8,10 +8,9 @@ import { useShell } from '@/components/ShellProvider';
 
 export const CHAT_UPDATED_EVENT = 'aca-chat-updated';
 export const GUEST_CHAT_KEY = 'aca_guest_chat_messages';
+export const GUEST_SESSIONS_KEY = 'aca_guest_chat_sessions';
 
 type HistoryItem = { id: string; title: string };
-
-type StoredMsg = { id?: string; role: 'user' | 'assistant'; content: string; mode?: string };
 
 function titleFrom(content: string) {
   const t = content.replace(/\s+/g, ' ').trim();
@@ -19,24 +18,11 @@ function titleFrom(content: string) {
   return `${t.slice(0, 48)}…`;
 }
 
-function userTurnsFromMessages(
-  messages: Array<{ id?: string; role: string; content: string }>,
-): HistoryItem[] {
-  const turns: HistoryItem[] = [];
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const m = messages[i];
-    if (m.role !== 'user') continue;
-    turns.push({ id: m.id || `u-${i}`, title: titleFrom(m.content) });
-    if (turns.length >= 20) break;
-  }
-  return turns;
-}
-
-function readGuestMessages(): StoredMsg[] {
+function readGuestSessions(): HistoryItem[] {
   try {
-    const raw = localStorage.getItem(GUEST_CHAT_KEY);
+    const raw = localStorage.getItem(GUEST_SESSIONS_KEY);
     if (!raw) return [];
-    const parsed = JSON.parse(raw) as StoredMsg[];
+    const parsed = JSON.parse(raw) as HistoryItem[];
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
@@ -58,13 +44,13 @@ function HistorySidebarInner() {
     setLoading(true);
     try {
       if (loggedIn) {
-        const { messages } = await api.chatHistory();
-        setItems(userTurnsFromMessages(messages));
+        const { sessions } = await api.chatSessions();
+        setItems(sessions.map((s) => ({ id: s.id, title: s.title || 'Chat' })));
       } else {
-        setItems(userTurnsFromMessages(readGuestMessages()));
+        setItems(readGuestSessions());
       }
     } catch {
-      if (!loggedIn) setItems(userTurnsFromMessages(readGuestMessages()));
+      if (!loggedIn) setItems(readGuestSessions());
       else setItems([]);
     } finally {
       setLoading(false);
@@ -75,7 +61,7 @@ function HistorySidebarInner() {
     refresh();
     const onUpdate = () => refresh();
     const onStorage = (e: StorageEvent) => {
-      if (e.key === 'aca_token' || e.key === GUEST_CHAT_KEY) refresh();
+      if (e.key === 'aca_token' || e.key === GUEST_SESSIONS_KEY || e.key === GUEST_CHAT_KEY) refresh();
     };
     window.addEventListener(CHAT_UPDATED_EVENT, onUpdate);
     window.addEventListener('storage', onStorage);
@@ -85,11 +71,26 @@ function HistorySidebarInner() {
     };
   }, [refresh]);
 
-  function newChat() {
-    router.push('/chat?new=1');
+  async function newChat() {
+    if (isLoggedIn()) {
+      try {
+        const { session } = await api.createChatSession();
+        router.push(`/chat?session=${encodeURIComponent(session.id)}&new=1`);
+        window.dispatchEvent(new Event(CHAT_UPDATED_EVENT));
+        return;
+      } catch {
+        /* fall through */
+      }
+    }
+    const id = `g-${Date.now()}`;
+    const next = [{ id, title: 'New research chat' }, ...readGuestSessions()].slice(0, 20);
+    localStorage.setItem(GUEST_SESSIONS_KEY, JSON.stringify(next));
+    localStorage.setItem(`${GUEST_CHAT_KEY}:${id}`, JSON.stringify([]));
+    router.push(`/chat?session=${encodeURIComponent(id)}&new=1`);
+    window.dispatchEvent(new Event(CHAT_UPDATED_EVENT));
   }
 
-  const focusId = searchParams.get('focus');
+  const sessionId = searchParams.get('session');
   const onChat = pathname === '/chat' || pathname.startsWith('/chat/');
 
   return (
@@ -127,23 +128,23 @@ function HistorySidebarInner() {
               'No chats yet. Ask something on Chat.'
             ) : (
               <>
-                Guest history stays in this browser. <Link href="/auth">Sign in</Link> to sync.
+                Guest sessions stay in this browser. <Link href="/auth">Sign in</Link> to sync.
               </>
             )}
           </p>
         )}
         {!loading &&
           items.map((item) => {
-            const active = onChat && focusId === item.id;
+            const active = onChat && sessionId === item.id;
             return (
               <Link
                 key={item.id}
-                href={`/chat?focus=${encodeURIComponent(item.id)}`}
+                href={`/chat?session=${encodeURIComponent(item.id)}`}
                 className={active ? 'history-item active' : 'history-item'}
                 tabIndex={historyOpen ? 0 : -1}
               >
                 <span className="history-dot" aria-hidden />
-                <span>{item.title}</span>
+                <span>{item.title || titleFrom(item.id)}</span>
               </Link>
             );
           })}

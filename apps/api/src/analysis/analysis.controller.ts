@@ -2,6 +2,7 @@ import { Body, Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/comm
 import { IsOptional, IsString } from 'class-validator';
 import { AnalysisService } from './analysis.service';
 import { OptionalJwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RateLimitGuard } from '../common/rate-limit.guard';
 
 class AnalyzeDto {
   @IsString()
@@ -16,7 +17,7 @@ class AnalyzeDto {
 export class AnalysisController {
   constructor(private readonly analysis: AnalysisService) {}
 
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(OptionalJwtAuthGuard, RateLimitGuard(30, 60_000))
   @Post()
   analyze(@Body() dto: AnalyzeDto, @Req() req: { user?: { userId: string } }) {
     return this.analysis.analyze(dto.coingeckoId, req.user?.userId, dto.timeframe || '1d');

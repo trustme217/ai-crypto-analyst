@@ -172,21 +172,43 @@ export const api = {
         createdAt: string;
       }>
     >('/analysis/recent'),
-  chat: (message: string) =>
-    request<{ reply: string; mode: string }>('/chat', {
+  chat: (message: string, sessionId?: string) =>
+    request<{ reply: string; mode: string; sessionId?: string | null }>('/chat', {
       method: 'POST',
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, sessionId }),
     }),
   chatHistory: () =>
     request<{
       messages: Array<{
         id: string;
         userId: string | null;
+        sessionId?: string | null;
         role: string;
         content: string;
         createdAt: string;
       }>;
     }>('/chat/history'),
+  chatSessions: () =>
+    request<{
+      sessions: Array<{ id: string; userId: string; title: string; createdAt: string; updatedAt: string }>;
+    }>('/chat/sessions'),
+  createChatSession: (title?: string) =>
+    request<{ session: { id: string; userId: string; title: string; createdAt: string; updatedAt: string } }>(
+      '/chat/sessions',
+      { method: 'POST', body: JSON.stringify({ title }) },
+    ),
+  chatSession: (id: string) =>
+    request<{
+      session: { id: string; userId: string; title: string; createdAt: string; updatedAt: string };
+      messages: Array<{
+        id: string;
+        userId: string | null;
+        sessionId: string | null;
+        role: string;
+        content: string;
+        createdAt: string;
+      }>;
+    }>(`/chat/sessions/${encodeURIComponent(id)}`),
   wallet: (address: string) =>
     request<{
       address: string;
@@ -339,6 +361,22 @@ export const api = {
     }),
   unfollowTrader: (traderId: string) =>
     request(`/copy-trading/follow/${encodeURIComponent(traderId)}`, { method: 'DELETE' }),
+  copyTrades: () =>
+    request<{
+      trades: Array<{
+        id: string;
+        traderId: string;
+        coingeckoId: string;
+        symbol: string;
+        name: string;
+        side: string;
+        quantity: number;
+        priceUsd: number;
+        notionalUsd: number;
+        note: string | null;
+        createdAt: string;
+      }>;
+    }>('/copy-trading/trades'),
 };
 
 export function formatUsd(n: number, digits = 2) {

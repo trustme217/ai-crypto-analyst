@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { api, formatPct, formatUsd, type TradingSignal } from '@/lib/api';
+import { api, formatPct, formatUsd, isLoggedIn, type TradingSignal } from '@/lib/api';
 
 export default function SignalsPage() {
   const [style, setStyle] = useState<'conservative' | 'balanced' | 'aggressive'>('balanced');
@@ -11,6 +11,16 @@ export default function SignalsPage() {
   const [source, setSource] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!isLoggedIn()) return;
+    api
+      .settings()
+      .then((s) => {
+        if (s.signalStyle) setStyle(s.signalStyle);
+      })
+      .catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     setLoading(true);

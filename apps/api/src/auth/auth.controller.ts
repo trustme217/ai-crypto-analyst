@@ -1,13 +1,14 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
 import { AuthService } from './auth.service';
+import { RateLimitGuard } from '../common/rate-limit.guard';
 
 class RegisterDto {
   @IsEmail()
   email!: string;
 
   @IsString()
-  @MinLength(6)
+  @MinLength(8)
   password!: string;
 
   @IsOptional()
@@ -24,6 +25,7 @@ class LoginDto {
 }
 
 @Controller('auth')
+@UseGuards(RateLimitGuard(20, 60_000))
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 

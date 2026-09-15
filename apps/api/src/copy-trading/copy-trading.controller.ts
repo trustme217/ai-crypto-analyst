@@ -29,6 +29,12 @@ export class CopyTradingController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('trades')
+  trades(@Req() req: { user: { userId: string } }) {
+    return this.copy.recentTrades(req.user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post('follow')
   follow(@Req() req: { user: { userId: string } }, @Body() dto: FollowDto) {
     return this.copy.follow(req.user.userId, dto.traderId, dto.allocationPct);

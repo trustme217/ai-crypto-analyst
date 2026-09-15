@@ -33,8 +33,11 @@ export function TopTools() {
       <Link href="/signals" className="tool-btn">
         Signals
       </Link>
-      <Link href="/analyze" className="tool-btn accent">
-        Analyze
+      <Link href="/heatmap" className="tool-btn">
+        Heatmap
+      </Link>
+      <Link href="/swap" className="tool-btn accent">
+        Size
       </Link>
       <form className="top-search" onSubmit={onSearch} role="search">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
