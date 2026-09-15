@@ -1,0 +1,2 @@
+# Stdlib-only AI service (works on Python 3.14 without compiling pydantic).
+# Optional LLM mode uses OPENAI_API_KEY via urllib.
