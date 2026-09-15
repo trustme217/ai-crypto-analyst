@@ -31,10 +31,10 @@ export function TopTools() {
         $ACA
       </div>
       <Link href="/signals" className="tool-btn">
-        Heatmaps
+        Signals
       </Link>
       <Link href="/analyze" className="tool-btn accent">
-        Swap
+        Analyze
       </Link>
       <form className="top-search" onSubmit={onSearch} role="search">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>

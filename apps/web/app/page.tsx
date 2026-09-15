@@ -79,12 +79,12 @@ export default function HomePage() {
             <em>Analyst</em>
           </h1>
           <p className="hero-copy">
-            Read the tape with AI briefs, Solana wallet context, and live CoinGecko signals — research
-            only, no custody.
+            Read the tape with AI briefs, Solana wallet context, and heuristic momentum rankings —
+            research only, no custody.
           </p>
           <div className="cta-row">
             <Link className="btn" href="/signals">
-              AI signals
+              Momentum signals
             </Link>
             <Link className="btn secondary" href="/portfolio">
               Portfolio

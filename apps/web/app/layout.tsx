@@ -9,7 +9,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'AI Crypto Analyst',
-  description: 'AI signals, portfolio, copy trading, alerts, and Solana research desk.',
+  description: 'AI research briefs, momentum signals, portfolio, alerts, and Solana wallet lookup.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

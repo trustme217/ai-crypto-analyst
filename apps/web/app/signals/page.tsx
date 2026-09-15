@@ -8,6 +8,7 @@ export default function SignalsPage() {
   const [style, setStyle] = useState<'conservative' | 'balanced' | 'aggressive'>('balanced');
   const [signals, setSignals] = useState<TradingSignal[]>([]);
   const [disclaimer, setDisclaimer] = useState('');
+  const [source, setSource] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -18,6 +19,7 @@ export default function SignalsPage() {
       .then((r) => {
         setSignals(r.signals);
         setDisclaimer(r.disclaimer);
+        setSource(r.source || 'heuristic');
         setError(null);
       })
       .catch((e: Error) => setError(e.message))
@@ -27,8 +29,8 @@ export default function SignalsPage() {
   return (
     <main className="section">
       <header className="page-head">
-        <div className="eyebrow">AI trading signals</div>
-        <h1>Momentum-ranked ideas.</h1>
+        <div className="eyebrow">Heuristic momentum signals</div>
+        <h1>24h change rankings.</h1>
       </header>
 
       <div className="cta-row" style={{ margin: '1rem 0' }}>
@@ -44,9 +46,14 @@ export default function SignalsPage() {
         ))}
       </div>
 
+      {source && (
+        <p className="muted" style={{ marginTop: '0.25rem' }}>
+          Source: <strong>{source}</strong> rules on live CoinGecko prices — not LLM output.
+        </p>
+      )}
       {disclaimer && <p className="muted">{disclaimer}</p>}
       {error && <p className="error">{error}</p>}
-      {loading && <p className="muted">Generating signals…</p>}
+      {loading && <p className="muted">Ranking momentum…</p>}
 
       <div className="panel" style={{ marginTop: '1rem' }}>
         <table className="table">
@@ -58,6 +65,7 @@ export default function SignalsPage() {
               <th>Entry</th>
               <th>SL / TP</th>
               <th>24h</th>
+              <th>Why</th>
             </tr>
           </thead>
           <tbody>
@@ -89,6 +97,9 @@ export default function SignalsPage() {
                   {formatUsd(s.stopLoss, 4)} / {formatUsd(s.takeProfit, 4)}
                 </td>
                 <td className={s.change24h >= 0 ? 'up' : 'down'}>{formatPct(s.change24h)}</td>
+                <td className="muted" style={{ fontSize: '0.8rem', maxWidth: 220 }}>
+                  {s.rationale}
+                </td>
               </tr>
             ))}
           </tbody>

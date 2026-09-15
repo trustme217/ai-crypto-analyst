@@ -57,7 +57,7 @@ export function TickerBar() {
         {!coins.length && <span className="ticker-pill muted">Syncing markets…</span>}
       </div>
       <Link href="/signals" className="ticker-hot">
-        Hot Pairs
+        Signals
       </Link>
     </div>
   );

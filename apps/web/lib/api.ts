@@ -177,6 +177,16 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ message }),
     }),
+  chatHistory: () =>
+    request<{
+      messages: Array<{
+        id: string;
+        userId: string | null;
+        role: string;
+        content: string;
+        createdAt: string;
+      }>;
+    }>('/chat/history'),
   wallet: (address: string) =>
     request<{
       address: string;
@@ -237,7 +247,7 @@ export const api = {
     return items.some((i) => i.coingeckoId === coingeckoId);
   },
   signals: (style = 'balanced') =>
-    request<{ style: string; disclaimer: string; signals: TradingSignal[] }>(
+    request<{ style: string; source?: string; disclaimer: string; signals: TradingSignal[] }>(
       `/signals?style=${encodeURIComponent(style)}`,
     ),
   portfolio: () =>

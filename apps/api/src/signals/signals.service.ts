@@ -24,6 +24,7 @@ export class SignalsService {
 
   async list(style: 'conservative' | 'balanced' | 'aggressive' = 'balanced'): Promise<{
     style: string;
+    source: 'heuristic';
     disclaimer: string;
     signals: TradingSignal[];
   }> {
@@ -83,7 +84,9 @@ export class SignalsService {
 
     return {
       style,
-      disclaimer: 'Simulated AI trading signals for research only. Not financial advice. No orders are placed.',
+      source: 'heuristic',
+      disclaimer:
+        'Heuristic momentum rankings from 24h price change — not an AI model and not financial advice. No orders are placed.',
       signals,
     };
   }
