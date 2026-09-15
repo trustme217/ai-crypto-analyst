@@ -83,6 +83,18 @@ export type TradingSignal = {
   takeProfit: number;
   rationale: string;
   change24h: number;
+  change7d?: number | null;
+  volMcap?: number;
+  scores?: {
+    token: string;
+    score: number;
+    smartMoney: number;
+    liquidity: number;
+    volume: number;
+    momentum: number;
+    holderQuality: number;
+    risk: number;
+  };
   generatedAt: string;
 };
 
@@ -269,9 +281,47 @@ export const api = {
     return items.some((i) => i.coingeckoId === coingeckoId);
   },
   signals: (style = 'balanced') =>
-    request<{ style: string; source?: string; disclaimer: string; signals: TradingSignal[] }>(
-      `/signals?style=${encodeURIComponent(style)}`,
-    ),
+    request<{
+      style: string;
+      source?: string;
+      weights?: Record<string, number>;
+      disclaimer: string;
+      signals: TradingSignal[];
+    }>(`/signals?style=${encodeURIComponent(style)}`),
+  smartMoneyWallets: () =>
+    request<{
+      wallets: Array<{
+        id: string;
+        address: string;
+        chain: string;
+        label: string | null;
+        winRate: number;
+        totalPnL: number;
+        smartMoneyScore: number;
+        bestToken: string | null;
+        totalTrades: number;
+      }>;
+    }>('/smart-money/wallets'),
+  smartMoneySignals: (windowMinutes = 30) =>
+    request<{
+      signals: Array<{
+        symbol: string;
+        coingeckoId: string | null;
+        score: number;
+        summary: string;
+        wallets: Array<{
+          label: string | null;
+          address: string;
+          winRate: number;
+          totalPnL: number;
+          smartMoneyScore: number;
+          side: string;
+          at: string;
+        }>;
+        windowMinutes: number;
+        generatedAt: string;
+      }>;
+    }>(`/smart-money/signals?window=${windowMinutes}`),
   portfolio: () =>
     request<{
       positions: Array<{

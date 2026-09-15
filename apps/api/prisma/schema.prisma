@@ -180,3 +180,52 @@ model CopyPaperTrade {
   @@index([userId])
   @@index([traderId])
 }
+
+/// Wallet intelligence (AlphaMind phase 3)
+model TrackedWallet {
+  id               String   @id @default(cuid())
+  address          String
+  chain            String   @default("solana")
+  label            String?
+  totalTrades      Int      @default(0)
+  winningTrades    Int      @default(0)
+  losingTrades     Int      @default(0)
+  winRate          Float    @default(0)
+  totalPnL         Float    @default(0)
+  averagePnL       Float    @default(0)
+  maxProfit        Float    @default(0)
+  maxDrawdown      Float    @default(0)
+  averageHoldTime  Float    @default(0)
+  bestToken        String?
+  worstToken       String?
+  smartMoneyScore  Float    @default(50)
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  trades           WalletTrade[]
+
+  @@unique([chain, address])
+  @@index([smartMoneyScore])
+  @@index([active])
+}
+
+model WalletTrade {
+  id             String        @id @default(cuid())
+  walletId       String
+  wallet         TrackedWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  coingeckoId    String?
+  mintOrSymbol   String
+  symbol         String
+  side           String
+  quantity       Float?
+  priceUsd       Float?
+  notionalUsd    Float?
+  signature      String?
+  blockTime      DateTime?
+  createdAt      DateTime      @default(now())
+
+  @@index([walletId])
+  @@index([symbol, createdAt])
+  @@index([createdAt])
+}
+

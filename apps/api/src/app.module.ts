@@ -12,6 +12,7 @@ import { PortfolioModule } from './portfolio/portfolio.module';
 import { AlertsModule } from './alerts/alerts.module';
 import { SettingsModule } from './settings/settings.module';
 import { CopyTradingModule } from './copy-trading/copy-trading.module';
+import { SmartMoneyModule } from './smart-money/smart-money.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -33,6 +34,7 @@ import { HealthController } from './health.controller';
     AlertsModule,
     SettingsModule,
     CopyTradingModule,
+    SmartMoneyModule,
   ],
   controllers: [HealthController],
 })
