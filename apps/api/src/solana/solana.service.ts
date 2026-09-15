@@ -76,6 +76,30 @@ export class SolanaService {
     };
   }
 
+  /** Recent signatures for continuous wallet ingest. */
+  async getSignatures(address: string, limit = 20, before?: string | null) {
+    if (!BASE58_RE.test(address)) {
+      throw new BadRequestException('Invalid Solana address');
+    }
+    const opts: { limit: number; before?: string } = { limit: Math.min(50, Math.max(1, limit)) };
+    if (before) opts.before = before;
+    return this.rpc<
+      Array<{ signature: string; slot: number; err: unknown; blockTime: number | null }>
+    >('getSignaturesForAddress', [address, opts]);
+  }
+
+  /** Full tx for parser (jsonParsed + v0). */
+  async getTransaction(signature: string) {
+    return this.rpc<Record<string, unknown> | null>('getTransaction', [
+      signature,
+      {
+        encoding: 'jsonParsed',
+        maxSupportedTransactionVersion: 0,
+        commitment: 'confirmed',
+      },
+    ]);
+  }
+
   private async rpc<T>(method: string, params: unknown[]): Promise<T> {
     const res = await fetch(this.rpcUrl, {
       method: 'POST',

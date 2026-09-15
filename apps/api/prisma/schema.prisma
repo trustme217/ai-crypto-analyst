@@ -181,12 +181,14 @@ model CopyPaperTrade {
   @@index([traderId])
 }
 
-/// Wallet intelligence (AlphaMind phase 3)
+/// Wallet intelligence (AlphaMind phase 3–4)
 model TrackedWallet {
   id               String   @id @default(cuid())
   address          String
   chain            String   @default("solana")
   label            String?
+  /// "rpc" = Solana ingest; "demo" = synthetic fills when offline
+  source           String   @default("rpc")
   totalTrades      Int      @default(0)
   winningTrades    Int      @default(0)
   losingTrades     Int      @default(0)
@@ -199,10 +201,13 @@ model TrackedWallet {
   bestToken        String?
   worstToken       String?
   smartMoneyScore  Float    @default(50)
+  lastSignature    String?
+  lastIngestAt     DateTime?
   active           Boolean  @default(true)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   trades           WalletTrade[]
+  events           WalletNormalizedEvent[]
 
   @@unique([chain, address])
   @@index([smartMoneyScore])
@@ -227,5 +232,28 @@ model WalletTrade {
   @@index([walletId])
   @@index([symbol, createdAt])
   @@index([createdAt])
+  @@index([signature])
+}
+
+/// Normalized chain events from the ingest pipeline (phase 4)
+model WalletNormalizedEvent {
+  id         String        @id @default(cuid())
+  walletId   String
+  wallet     TrackedWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  chain      String        @default("SOLANA")
+  signature  String
+  tokenMint  String
+  tokenSymbol String?
+  type       String
+  amount     Float
+  valueUsd   Float?
+  timestamp  DateTime
+  rawJson    String?
+  createdAt  DateTime      @default(now())
+
+  @@unique([signature, walletId, tokenMint, type])
+  @@index([walletId, timestamp])
+  @@index([tokenMint, timestamp])
+  @@index([type, timestamp])
 }
 

@@ -295,11 +295,13 @@ export const api = {
         address: string;
         chain: string;
         label: string | null;
+        source: string;
         winRate: number;
         totalPnL: number;
         smartMoneyScore: number;
         bestToken: string | null;
         totalTrades: number;
+        lastIngestAt: string | null;
       }>;
     }>('/smart-money/wallets'),
   smartMoneySignals: (windowMinutes = 30) =>
@@ -322,6 +324,24 @@ export const api = {
         generatedAt: string;
       }>;
     }>(`/smart-money/signals?window=${windowMinutes}`),
+  smartMoneyEvents: (limit = 40) =>
+    request<{
+      events: Array<{
+        chain: string;
+        signature: string;
+        wallet: string;
+        label: string | null;
+        token: string;
+        tokenSymbol: string | null;
+        type: string;
+        amount: number;
+        valueUsd: number | null;
+        timestamp: string;
+      }>;
+      pipeline: string[];
+    }>(`/smart-money/events?limit=${limit}`),
+  smartMoneyIngest: () =>
+    request<{ ok: boolean; message: string }>('/smart-money/ingest', { method: 'POST' }),
   portfolio: () =>
     request<{
       positions: Array<{

@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.module';
+import { WalletIngestService } from './wallet-ingest.service';
 
 export type SmartMoneySignal = {
   symbol: string;
@@ -23,6 +24,7 @@ const SEED_WALLETS = [
   {
     address: 'NovaSm1tWallet11111111111111111111111111111',
     label: 'Wallet A',
+    source: 'demo' as const,
     winRate: 78,
     totalPnL: 420_000,
     totalTrades: 120,
@@ -34,6 +36,7 @@ const SEED_WALLETS = [
   {
     address: 'AtlasSm2Wallet2222222222222222222222222222',
     label: 'Wallet B',
+    source: 'demo' as const,
     winRate: 71,
     totalPnL: 180_000,
     totalTrades: 95,
@@ -45,6 +48,7 @@ const SEED_WALLETS = [
   {
     address: 'PulseSm3Wallet3333333333333333333333333333',
     label: 'Wallet C',
+    source: 'demo' as const,
     winRate: 83,
     totalPnL: 610_000,
     totalTrades: 140,
@@ -53,79 +57,85 @@ const SEED_WALLETS = [
     smartMoneyScore: 92,
     bestToken: 'BONK',
   },
+  // Live RPC ingest examples (public high-activity accounts)
+  {
+    address: '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM',
+    label: 'Exchange hot (RPC)',
+    source: 'rpc' as const,
+    winRate: 0,
+    totalPnL: 0,
+    totalTrades: 0,
+    winningTrades: 0,
+    losingTrades: 0,
+    smartMoneyScore: 50,
+    bestToken: null as string | null,
+  },
+  {
+    address: '5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1',
+    label: 'Raydium auth (RPC)',
+    source: 'rpc' as const,
+    winRate: 0,
+    totalPnL: 0,
+    totalTrades: 0,
+    winningTrades: 0,
+    losingTrades: 0,
+    smartMoneyScore: 50,
+    bestToken: null as string | null,
+  },
 ] as const;
 
 @Injectable()
 export class SmartMoneyService implements OnModuleInit {
   private readonly logger = new Logger(SmartMoneyService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly ingest: WalletIngestService,
+  ) {}
 
   async onModuleInit() {
     await this.ensureSeed();
-    // Lightweight continuous ingest stub — simulates recent buys for demos
-    setInterval(() => void this.ingestStubTick(), 120_000);
-    setTimeout(() => void this.ingestStubTick(), 8_000);
+    // Continuous ingest: tracked → RPC → parse → events → analytics → SM score
+    setInterval(() => void this.ingest.ingestTick(), 90_000);
+    setTimeout(() => void this.ingest.ingestTick(), 5_000);
+    this.logger.log('Wallet ingest pipeline started (every ~90s)');
   }
 
   private async ensureSeed() {
-    const count = await this.prisma.trackedWallet.count();
-    if (count > 0) return;
-    this.logger.log('Seeding tracked smart-money wallets…');
     for (const w of SEED_WALLETS) {
+      const existing = await this.prisma.trackedWallet.findUnique({
+        where: { chain_address: { chain: 'solana', address: w.address } },
+      });
+      if (existing) {
+        if (existing.source !== w.source || existing.label !== w.label) {
+          await this.prisma.trackedWallet.update({
+            where: { id: existing.id },
+            data: { source: w.source, label: w.label },
+          });
+        }
+        continue;
+      }
+      this.logger.log(`Seeding tracked wallet ${w.label}…`);
       await this.prisma.trackedWallet.create({
         data: {
           address: w.address,
           chain: 'solana',
           label: w.label,
+          source: w.source,
           winRate: w.winRate,
           totalPnL: w.totalPnL,
           totalTrades: w.totalTrades,
           winningTrades: w.winningTrades,
           losingTrades: w.losingTrades,
-          averagePnL: w.totalPnL / Math.max(1, w.totalTrades),
+          averagePnL: w.totalTrades ? w.totalPnL / w.totalTrades : 0,
           maxProfit: w.totalPnL * 0.15,
           maxDrawdown: -Math.abs(w.totalPnL) * 0.08,
-          averageHoldTime: 36,
+          averageHoldTime: w.source === 'demo' ? 36 : 0,
           bestToken: w.bestToken,
           smartMoneyScore: w.smartMoneyScore,
           active: true,
         },
       });
-    }
-  }
-
-  /** Demo ingest: random buy among seeded wallets on majors. */
-  async ingestStubTick() {
-    try {
-      const wallets = await this.prisma.trackedWallet.findMany({ where: { active: true }, take: 10 });
-      if (!wallets.length) return;
-      const picks = [
-        { symbol: 'SOL', coingeckoId: 'solana' },
-        { symbol: 'BTC', coingeckoId: 'bitcoin' },
-        { symbol: 'ETH', coingeckoId: 'ethereum' },
-        { symbol: 'JUP', coingeckoId: 'jupiter-exchange-solana' },
-        { symbol: 'BONK', coingeckoId: 'bonk' },
-      ];
-      // 1–3 wallets buy the same token in this tick window
-      const asset = picks[Math.floor(Math.random() * picks.length)];
-      const n = 1 + Math.floor(Math.random() * Math.min(3, wallets.length));
-      const shuffled = [...wallets].sort(() => Math.random() - 0.5).slice(0, n);
-      for (const w of shuffled) {
-        await this.prisma.walletTrade.create({
-          data: {
-            walletId: w.id,
-            coingeckoId: asset.coingeckoId,
-            mintOrSymbol: asset.symbol,
-            symbol: asset.symbol,
-            side: 'buy',
-            notionalUsd: 5_000 + Math.random() * 40_000,
-            blockTime: new Date(),
-          },
-        });
-      }
-    } catch (err) {
-      this.logger.warn(`Wallet ingest stub failed: ${(err as Error).message}`);
     }
   }
 
@@ -140,6 +150,7 @@ export class SmartMoneyService implements OnModuleInit {
         address: w.address,
         chain: w.chain,
         label: w.label,
+        source: w.source,
         totalTrades: w.totalTrades,
         winningTrades: w.winningTrades,
         losingTrades: w.losingTrades,
@@ -152,11 +163,12 @@ export class SmartMoneyService implements OnModuleInit {
         bestToken: w.bestToken,
         worstToken: w.worstToken,
         smartMoneyScore: w.smartMoneyScore,
+        lastIngestAt: w.lastIngestAt?.toISOString() ?? null,
+        lastSignature: w.lastSignature,
       })),
     };
   }
 
-  /** Smart-money score for a token from recent tracked buys (window minutes). */
   async scoreForSymbol(symbol: string, windowMinutes = 60): Promise<number | null> {
     const since = new Date(Date.now() - windowMinutes * 60_000);
     const trades = await this.prisma.walletTrade.findMany({
@@ -229,5 +241,13 @@ export class SmartMoneyService implements OnModuleInit {
 
     signals.sort((a, b) => b.score - a.score || b.wallets.length - a.wallets.length);
     return { signals };
+  }
+
+  recentEvents(limit = 40) {
+    return this.ingest.recentEvents(limit);
+  }
+
+  triggerIngest() {
+    return this.ingest.ingestTick();
   }
 }
