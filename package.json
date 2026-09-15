@@ -1,0 +1,20 @@
+{
+  "name": "ai-crypto-analyst",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n ai,api,web -c magenta,cyan,green \"npm run dev:ai\" \"npm run dev:api\" \"npm run dev:web\"",
+    "start": "npm run dev",
+    "dev:api": "npm run start:dev -w @aca/api",
+    "dev:web": "npm run dev -w @aca/web",
+    "dev:ai": "py -3 apps/ai/server.py",
+    "build": "npm run build -w @aca/api && npm run build -w @aca/web"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
+}

@@ -1,0 +1,16 @@
+node_modules
+dist
+.next
+.env
+.env.local
+*.db
+*.db-journal
+__pycache__
+.venv
+venv
+*.pyc
+.DS_Store
+coverage
+.turbo
+apps/api/data
+apps/ai/.venv
