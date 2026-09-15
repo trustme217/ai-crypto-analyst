@@ -33,8 +33,32 @@ class UpdateSettingsDto {
   signalStyle?: 'conservative' | 'balanced' | 'aggressive';
 
   @IsOptional()
-  @IsString()
+  @IsIn([
+    'USD',
+    'EUR',
+    'GBP',
+    'JPY',
+    'KRW',
+    'CNY',
+    'HKD',
+    'SGD',
+    'AUD',
+    'CAD',
+    'CHF',
+    'INR',
+    'BRL',
+    'TRY',
+    'AED',
+    'BTC',
+    'ETH',
+  ])
   currency?: string;
+}
+
+class TelegramTestDto {
+  @IsOptional()
+  @IsString()
+  chatId?: string;
 }
 
 @Controller('settings')
@@ -53,8 +77,8 @@ export class SettingsController {
   }
 
   @Post('telegram/test')
-  testTelegram(@Req() req: { user: { userId: string } }) {
-    return this.settings.testTelegram(req.user.userId);
+  testTelegram(@Req() req: { user: { userId: string } }, @Body() dto: TelegramTestDto) {
+    return this.settings.testTelegram(req.user.userId, dto.chatId);
   }
 
   @Get('telegram/chats')
