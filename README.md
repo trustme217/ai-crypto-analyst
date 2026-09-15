@@ -15,9 +15,9 @@ Built from your shared ChatGPT prompts:
 | Signals | AI trading signals (long/short/neutral + SL/TP) |
 | Portfolio | Paper positions with live PnL |
 | Copy trading | Follow demo desks (paper only) |
-| Alerts | Price above/below alerts |
+| Alerts | Price above/below → Telegram bot notification |
 | Watchlist | Guest browser save or account sync — Watch on token page |
-| Settings | Risk, signal style, preferences |
+| Settings | Risk, signal style, Telegram chat ID |
 | AI | Analyze token → sentiment / score / thesis |
 | Chat | Research assistant |
 | Solana | Public wallet lookup |
@@ -44,6 +44,14 @@ npm install
 ```
 
 Optional: set `OPENAI_API_KEY` in `.env` for LLM mode. Heuristic mode works without it.
+
+### Telegram price alerts
+
+1. Create a bot with [BotFather](https://t.me/BotFather) and put the token in `.env` as `TELEGRAM_BOT_TOKEN`.
+2. Restart the API (`npm run dev`).
+3. Open the bot in Telegram and send any message (e.g. `/start`).
+4. Sign in → **Settings** → pick your chat (or paste chat ID) → enable Telegram alerts → **Send test**.
+5. Create a price alert on **Alerts**. When the level is hit, the bot messages that chat.
 
 Python uses only the standard library (works on Python 3.14 with no pip packages).
 

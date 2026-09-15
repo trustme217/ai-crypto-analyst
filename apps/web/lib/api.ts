@@ -287,8 +287,10 @@ export const api = {
         active: boolean;
         currentPrice: number | null;
         status: string;
+        triggeredAt?: string | null;
         createdAt: string;
       }>;
+      telegram?: { botConfigured: boolean; pollHint: string };
     }>('/alerts'),
   createAlert: (coingeckoId: string, direction: 'above' | 'below', targetPrice: number) =>
     request('/alerts', {
@@ -303,12 +305,22 @@ export const api = {
       defaultTimeframe: string;
       riskTolerance: 'low' | 'medium' | 'high';
       emailAlerts: boolean;
+      telegramAlerts: boolean;
+      telegramChatId: string | null;
+      telegramBotConfigured?: boolean;
       signalStyle: 'conservative' | 'balanced' | 'aggressive';
       currency: string;
       updatedAt: string;
     }>('/settings'),
   updateSettings: (patch: Record<string, unknown>) =>
     request('/settings', { method: 'PATCH', body: JSON.stringify(patch) }),
+  testTelegram: () =>
+    request<{ ok: boolean }>('/settings/telegram/test', { method: 'POST', body: '{}' }),
+  telegramChats: () =>
+    request<{
+      configured: boolean;
+      chats: Array<{ chatId: string; name: string }>;
+    }>('/settings/telegram/chats'),
   copyLeaders: () =>
     request<{ disclaimer: string; leaders: CopyLeader[] }>('/copy-trading/leaders'),
   copyFollows: () =>

@@ -8,6 +8,7 @@ type AlertRow = Awaited<ReturnType<typeof api.alerts>>['alerts'][number];
 
 export default function AlertsPage() {
   const [alerts, setAlerts] = useState<AlertRow[]>([]);
+  const [telegramOk, setTelegramOk] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [coingeckoId, setCoingeckoId] = useState('bitcoin');
   const [direction, setDirection] = useState<'above' | 'below'>('above');
@@ -23,6 +24,7 @@ export default function AlertsPage() {
     try {
       const res = await api.alerts();
       setAlerts(res.alerts);
+      setTelegramOk(res.telegram?.botConfigured ?? null);
       setError(null);
     } catch (e) {
       setError((e as Error).message);
@@ -52,6 +54,14 @@ export default function AlertsPage() {
         <div className="eyebrow">Alerts</div>
         <h1>Watch price levels.</h1>
       </header>
+
+      <p className="muted" style={{ marginTop: '0.5rem' }}>
+        When a level is hit, the API sends a Telegram message (if enabled in{' '}
+        <Link href="/settings">Settings</Link>
+        ). Status <strong>sent</strong> means the bot was notified.
+        {telegramOk === false && ' TELEGRAM_BOT_TOKEN is not set on the API yet.'}
+        {telegramOk === true && ' Bot token detected.'}
+      </p>
 
       {error && (
         <p className="error">
@@ -120,7 +130,11 @@ export default function AlertsPage() {
                   </td>
                   <td>{a.currentPrice != null ? formatUsd(a.currentPrice, 4) : '—'}</td>
                   <td>
-                    <span className={`pill ${a.status === 'triggered' ? 'bullish' : 'neutral'}`}>
+                    <span
+                      className={`pill ${
+                        a.status === 'sent' || a.status === 'triggered' ? 'bullish' : 'neutral'
+                      }`}
+                    >
                       {a.status}
                     </span>
                   </td>

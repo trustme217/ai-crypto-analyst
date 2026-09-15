@@ -77,6 +77,8 @@ export type UserSettings = {
   defaultTimeframe: string;
   riskTolerance: 'low' | 'medium' | 'high';
   emailAlerts: boolean;
+  telegramAlerts: boolean;
+  telegramChatId: string | null;
   signalStyle: 'conservative' | 'balanced' | 'aggressive';
   currency: string;
   updatedAt: string;
@@ -162,7 +164,9 @@ export class StoreService implements OnModuleInit {
       displayName: user.displayName,
       defaultTimeframe: '1d',
       riskTolerance: 'medium',
-      emailAlerts: true,
+      emailAlerts: false,
+      telegramAlerts: true,
+      telegramChatId: null,
       signalStyle: 'balanced',
       currency: 'USD',
       updatedAt: now,
@@ -296,6 +300,19 @@ export class StoreService implements OnModuleInit {
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
+  async listActiveAlerts() {
+    return this.db.alerts.filter((a) => a.active && !a.triggeredAt);
+  }
+
+  async markAlertTriggered(id: string) {
+    const alert = this.db.alerts.find((a) => a.id === id);
+    if (!alert) return null;
+    alert.active = false;
+    alert.triggeredAt = new Date().toISOString();
+    await this.persist();
+    return alert;
+  }
+
   async createAlert(data: Omit<PriceAlert, 'id' | 'createdAt' | 'triggeredAt' | 'active'>) {
     const alert: PriceAlert = {
       id: cuid(),
@@ -325,13 +342,23 @@ export class StoreService implements OnModuleInit {
         displayName: null,
         defaultTimeframe: '1d',
         riskTolerance: 'medium',
-        emailAlerts: true,
+        emailAlerts: false,
+        telegramAlerts: true,
+        telegramChatId: null,
         signalStyle: 'balanced',
         currency: 'USD',
         updatedAt: new Date().toISOString(),
       };
       this.db.settings.push(s);
       await this.persist();
+    } else {
+      // Migrate older store.json rows
+      if (typeof (s as UserSettings).telegramAlerts !== 'boolean') {
+        (s as UserSettings).telegramAlerts = true;
+      }
+      if ((s as UserSettings).telegramChatId === undefined) {
+        (s as UserSettings).telegramChatId = null;
+      }
     }
     return s;
   }

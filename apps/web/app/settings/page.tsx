@@ -11,6 +11,8 @@ export default function SettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [recentChats, setRecentChats] = useState<Array<{ chatId: string; name: string }>>([]);
 
   async function load() {
     if (!isLoggedIn()) {
@@ -19,8 +21,19 @@ export default function SettingsPage() {
       return;
     }
     try {
-      setSettings(await api.settings());
+      const s = await api.settings();
+      setSettings({
+        ...s,
+        telegramAlerts: s.telegramAlerts ?? true,
+        telegramChatId: s.telegramChatId ?? null,
+      });
       setError(null);
+      try {
+        const chats = await api.telegramChats();
+        setRecentChats(chats.chats || []);
+      } catch {
+        setRecentChats([]);
+      }
     } catch (e) {
       setError((e as Error).message);
     }
@@ -36,20 +49,36 @@ export default function SettingsPage() {
     setSaving(true);
     setMessage(null);
     try {
-      const updated = await api.updateSettings({
+      const updated = (await api.updateSettings({
         displayName: settings.displayName,
         defaultTimeframe: settings.defaultTimeframe,
         riskTolerance: settings.riskTolerance,
         emailAlerts: settings.emailAlerts,
+        telegramAlerts: settings.telegramAlerts,
+        telegramChatId: settings.telegramChatId,
         signalStyle: settings.signalStyle,
         currency: settings.currency,
-      });
+      })) as Settings;
       setSettings(updated);
       setMessage('Settings saved.');
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function onTestTelegram() {
+    setTesting(true);
+    setMessage(null);
+    setError(null);
+    try {
+      await api.testTelegram();
+      setMessage('Test message sent to Telegram.');
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setTesting(false);
     }
   }
 
@@ -123,17 +152,62 @@ export default function SettingsPage() {
               onChange={(e) => setSettings({ ...settings, currency: e.target.value })}
             />
           </div>
+
+          <h3 className="panel-title" style={{ marginTop: '1.25rem' }}>
+            Telegram alerts
+          </h3>
+          <p className="muted" style={{ marginBottom: '0.75rem', fontSize: '0.85rem' }}>
+            {settings.telegramBotConfigured
+              ? 'Bot token is configured on the API. Save your chat ID, then create price alerts.'
+              : 'Add TELEGRAM_BOT_TOKEN to the root .env and restart the API.'}
+          </p>
           <label className="muted" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             <input
               type="checkbox"
-              checked={settings.emailAlerts}
-              onChange={(e) => setSettings({ ...settings, emailAlerts: e.target.checked })}
+              checked={Boolean(settings.telegramAlerts)}
+              onChange={(e) => setSettings({ ...settings, telegramAlerts: e.target.checked })}
             />
-            Email alerts (preference only in MVP)
+            Send price alerts to Telegram
           </label>
-          <div style={{ marginTop: '1rem' }}>
+          <div className="field" style={{ marginTop: '0.75rem' }}>
+            <label htmlFor="tg">Telegram chat ID</label>
+            <input
+              id="tg"
+              value={settings.telegramChatId || ''}
+              onChange={(e) => setSettings({ ...settings, telegramChatId: e.target.value })}
+              placeholder="e.g. 123456789"
+            />
+          </div>
+          {recentChats.length > 0 && (
+            <div className="cta-row" style={{ marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+              {recentChats.map((c) => (
+                <button
+                  key={c.chatId}
+                  type="button"
+                  className="chip"
+                  onClick={() => setSettings({ ...settings, telegramChatId: c.chatId })}
+                  title={c.name}
+                >
+                  {c.name || c.chatId}
+                </button>
+              ))}
+            </div>
+          )}
+          <p className="muted" style={{ fontSize: '0.8rem', marginBottom: '0.75rem' }}>
+            Message your bot once in Telegram, then click a discovered chat above (or paste the numeric
+            chat ID).
+          </p>
+          <div className="cta-row">
             <button className="btn" disabled={saving}>
               {saving ? 'Saving…' : 'Save settings'}
+            </button>
+            <button
+              className="btn secondary"
+              type="button"
+              disabled={testing || !settings.telegramBotConfigured}
+              onClick={onTestTelegram}
+            >
+              {testing ? 'Sending…' : 'Send test to Telegram'}
             </button>
           </div>
         </form>

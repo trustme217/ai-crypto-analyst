@@ -107,6 +107,25 @@ export class MarketService {
     }
   }
 
+  /** Batch USD prices for alert polling (CoinGecko /simple/price). */
+  async getSimplePrices(ids: string[]): Promise<Record<string, number>> {
+    const unique = [...new Set(ids.map((id) => id.trim()).filter(Boolean))];
+    if (!unique.length) return {};
+    const key = `simple:${unique.slice().sort().join(',')}`;
+    return this.getCached(key, async () => {
+      const url =
+        `${this.baseUrl}/simple/price?ids=${encodeURIComponent(unique.join(','))}` +
+        `&vs_currencies=usd`;
+      const data = await this.fetchJson<Record<string, { usd?: number }>>(url);
+      const out: Record<string, number> = {};
+      for (const id of unique) {
+        const usd = data[id]?.usd;
+        if (typeof usd === 'number') out[id] = usd;
+      }
+      return out;
+      });
+  }
+
   private async fetchCoinDetail(id: string) {
     const url =
       `${this.baseUrl}/coins/${encodeURIComponent(id)}` +
