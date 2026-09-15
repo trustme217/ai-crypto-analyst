@@ -43,7 +43,7 @@ export default function SignalsPage() {
         <h1>24h change rankings.</h1>
       </header>
 
-      <div className="cta-row" style={{ margin: '1rem 0' }}>
+      <div className="cta-row">
         {(['conservative', 'balanced', 'aggressive'] as const).map((s) => (
           <button
             key={s}
@@ -57,7 +57,7 @@ export default function SignalsPage() {
       </div>
 
       {source && (
-        <p className="muted" style={{ marginTop: '0.25rem' }}>
+        <p className="muted">
           Source: <strong>{source}</strong> rules on live CoinGecko prices — not LLM output.
         </p>
       )}
@@ -65,7 +65,7 @@ export default function SignalsPage() {
       {error && <p className="error">{error}</p>}
       {loading && <p className="muted">Ranking momentum…</p>}
 
-      <div className="panel" style={{ marginTop: '1rem' }}>
+      <div className="panel">
         <table className="table">
           <thead>
             <tr>

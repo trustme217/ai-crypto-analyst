@@ -68,7 +68,7 @@ export default function HomePage() {
   }, [q]);
 
   return (
-    <main>
+    <main className="section home-desk">
       <section className="hero">
         <div>
           <div className="live-dot">
@@ -126,7 +126,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="section grid-2">
+      <section className="grid-2">
         <div className="panel">
           <h2>Majors</h2>
           {!data ? (
