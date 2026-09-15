@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Target schema for PostgreSQL upgrade.
+// MVP currently persists via apps/api JSON store (no Docker / no Prisma engine required).
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String         @id @default(cuid())
+  email        String         @unique
+  passwordHash String
+  displayName  String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  watchlist    WatchlistItem[]
+  analyses     AnalysisReport[]
+  chats        ChatMessage[]
+}
+
+model WatchlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coingeckoId String
+  symbol    String
+  name      String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, coingeckoId])
+  @@index([userId])
+}
+
+model AnalysisReport {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  coingeckoId String
+  symbol      String
+  name        String
+  timeframe   String   @default("1d")
+  sentiment   String
+  score       Float
+  summary     String
+  thesis      String
+  risks       String
+  catalysts   String
+  rawJson     String
+  createdAt   DateTime @default(now())
+
+  @@index([coingeckoId])
+  @@index([userId])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  role      String
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
