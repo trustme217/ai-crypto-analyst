@@ -47,7 +47,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
       return;
     }
 
-    this.logger.log('Importing legacy store.json into SQLite…');
+    this.logger.log('Importing legacy store.json into PostgreSQL…');
     for (const u of db.users || []) {
       await this.user.create({
         data: {

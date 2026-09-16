@@ -277,7 +277,7 @@ export class WalletIngestService {
         'transactions',
         'transaction parser',
         'normalized events',
-        'SQLite',
+        'PostgreSQL',
         'wallet analytics',
         'smart-money score',
       ],

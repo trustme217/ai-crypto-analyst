@@ -9,7 +9,10 @@
   "scripts": {
     "dev": "concurrently -k -n ai,api,web -c magenta,cyan,green \"npm run dev:ai\" \"npm run dev:api\" \"npm run dev:web\"",
     "start": "npm run dev",
-    "dev:api": "npm run start:dev -w @aca/api",
+    "dev:api": "npm run db:up && npm run start:dev -w @aca/api",
+    "db:up": "node scripts/postgres.mjs start",
+    "db:down": "node scripts/postgres.mjs stop",
+    "db:status": "node scripts/postgres.mjs status",
     "dev:web": "npm run dev -w @aca/web",
     "dev:ai": "py -3 apps/ai/server.py",
     "build": "npm run build -w @aca/api && npm run build -w @aca/web"

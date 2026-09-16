@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -275,5 +275,30 @@ model TokenHolderSnapshot {
 
   @@index([coingeckoId, createdAt])
   @@index([symbol, createdAt])
+}
+
+/// Price history for the long-term pipeline (PostgreSQL)
+model TokenPricePoint {
+  id          String   @id @default(cuid())
+  coingeckoId String
+  symbol      String
+  price       Float
+  volume24h   Float?
+  marketCap   Float?
+  capturedAt  DateTime @default(now())
+
+  @@index([coingeckoId, capturedAt])
+  @@index([symbol, capturedAt])
+}
+
+/// Strategy backtest runs
+model BacktestRun {
+  id          String    @id @default(cuid())
+  name        String
+  paramsJson  String
+  resultJson  String?
+  status      String    @default("pending")
+  createdAt   DateTime  @default(now())
+  finishedAt  DateTime?
 }
 

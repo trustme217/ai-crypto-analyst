@@ -27,21 +27,27 @@ Research desk for crypto markets + Solana + AI briefs + paper alerts/copy.
 ## Stack
 
 ```
-apps/web   Next.js UI                 :3000
-apps/api   NestJS + Prisma SQLite     :3001
-apps/ai    Python AI (stdlib server)  :8001
+apps/web   Next.js UI                      :3000
+apps/api   NestJS + Prisma PostgreSQL      :3001
+apps/ai    Python AI (stdlib server)       :8001
+Postgres   local cluster (no Docker)       :5434
 ```
 
-Persistence: SQLite at `apps/api/data/aca.db` via Prisma. Legacy `store.json` is imported once if present.
+Persistence: local PostgreSQL at `127.0.0.1:5434` (data dir `apps/api/data/pgdata`). Uses an installed PostgreSQL, **not Docker**. `npm run db:up` / `start.bat` start the cluster. First run copies existing SQLite `aca.db` if present. Schema includes wallet events, holder snapshots, price history, analyses, paper trades, alerts, and backtest runs.
 
 ## Setup
+
+1. Install [PostgreSQL](https://www.postgresql.org/download/) locally if it is not already on PATH / `C:\Program Files\PostgreSQL`. Optional: `ACA_PG_BIN` to the `bin` folder.
+2. Copy env and install:
 
 ```bash
 cp .env.example .env
 npm install
 ```
 
-API `start:dev` runs `prisma generate` + `prisma db push` automatically.
+`DATABASE_URL` defaults to `postgresql://aca@127.0.0.1:5434/aca`.
+
+API `start:dev` runs `db:up` (via `npm run dev:api`) then `prisma generate` + `prisma db push` + one-time SQLite import.
 
 Optional: `OPENAI_API_KEY` for LLM mode. Heuristic AI works without it.
 
@@ -84,6 +90,5 @@ npm run dev:web
 
 ## Next upgrades (not in this MVP)
 
-1. PostgreSQL instead of SQLite  
-2. Redis + BullMQ for jobs  
-3. HttpOnly cookie auth, Docker Compose, stronger rate limits  
+1. Redis + BullMQ for jobs  
+2. HttpOnly cookie auth, stronger rate limits  
