@@ -234,7 +234,7 @@ export default function SettingsPage() {
               checked={Boolean(settings.telegramAlerts)}
               onChange={(e) => setSettings({ ...settings, telegramAlerts: e.target.checked })}
             />
-            Send price alerts to Telegram
+            Send signal alerts to Telegram
           </label>
           <div className="field" style={{ marginTop: '0.75rem' }}>
             <label htmlFor="tg">Telegram chat ID</label>

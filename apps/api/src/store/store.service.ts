@@ -78,6 +78,19 @@ export type PriceAlert = {
   createdAt: string;
 };
 
+export type SignalEventRow = {
+  id: string;
+  type: string;
+  coingeckoId: string;
+  symbol: string;
+  name: string;
+  title: string;
+  body: string;
+  payloadJson: string;
+  fingerprint: string;
+  createdAt: string;
+};
+
 export type UserSettings = {
   userId: string;
   displayName: string | null;
@@ -721,6 +734,199 @@ export class StoreService {
       note: t.note,
       createdAt: t.createdAt.toISOString(),
     };
+  }
+
+  async listTelegramSubscribers(): Promise<Array<{ userId: string; telegramChatId: string }>> {
+    const rows = await this.prisma.userSettings.findMany({
+      where: { telegramAlerts: true, telegramChatId: { not: null } },
+    });
+    return rows
+      .filter((s) => Boolean(s.telegramChatId?.trim()))
+      .map((s) => ({ userId: s.userId, telegramChatId: s.telegramChatId!.trim() }));
+  }
+
+  async recordSignal(data: {
+    type: string;
+    coingeckoId: string;
+    symbol: string;
+    name: string;
+    title: string;
+    body: string;
+    payloadJson: string;
+    fingerprint: string;
+    fanout?: boolean;
+  }): Promise<SignalEventRow | null> {
+    const existing = await this.prisma.signalEvent.findUnique({
+      where: { fingerprint: data.fingerprint },
+    });
+    if (existing) return null;
+    try {
+      const row = await this.prisma.signalEvent.create({
+        data: {
+          type: data.type,
+          coingeckoId: data.coingeckoId,
+          symbol: data.symbol,
+          name: data.name,
+          title: data.title,
+          body: data.body,
+          payloadJson: data.payloadJson,
+          fingerprint: data.fingerprint,
+        },
+      });
+      if (data.fanout !== false) {
+        const subs = await this.listTelegramSubscribers();
+        if (subs.length) {
+          await this.prisma.signalDelivery.createMany({
+            data: subs.map((s) => ({
+              signalId: row.id,
+              userId: s.userId,
+              status: 'pending',
+            })),
+            skipDuplicates: true,
+          });
+        }
+      }
+      return {
+        id: row.id,
+        type: row.type,
+        coingeckoId: row.coingeckoId,
+        symbol: row.symbol,
+        name: row.name,
+        title: row.title,
+        body: row.body,
+        payloadJson: row.payloadJson,
+        fingerprint: row.fingerprint,
+        createdAt: row.createdAt.toISOString(),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  async listRecentSignals(limit = 40): Promise<SignalEventRow[]> {
+    const rows = await this.prisma.signalEvent.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: Math.min(limit, 100),
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      type: r.type,
+      coingeckoId: r.coingeckoId,
+      symbol: r.symbol,
+      name: r.name,
+      title: r.title,
+      body: r.body,
+      payloadJson: r.payloadJson,
+      fingerprint: r.fingerprint,
+      createdAt: r.createdAt.toISOString(),
+    }));
+  }
+
+  async listDueSignalDeliveries(limit = 20) {
+    return this.prisma.signalDelivery.findMany({
+      where: {
+        status: { in: ['pending', 'retry'] },
+        nextRetryAt: { lte: new Date() },
+        attempts: { lt: 5 },
+      },
+      include: { signal: true },
+      take: limit,
+      orderBy: { nextRetryAt: 'asc' },
+    });
+  }
+
+  async markSignalDeliverySent(id: string) {
+    return this.prisma.signalDelivery.update({
+      where: { id },
+      data: { status: 'sent' },
+    });
+  }
+
+  async markSignalDeliveryFailed(id: string, attempts: number, error: string) {
+    if (attempts >= 5) {
+      return this.prisma.signalDelivery.update({
+        where: { id },
+        data: { status: 'failed', attempts, lastError: error },
+      });
+    }
+    return this.prisma.signalDelivery.update({
+      where: { id },
+      data: {
+        status: 'retry',
+        attempts,
+        lastError: error,
+        nextRetryAt: new Date(Date.now() + Math.min(30 * 60_000, 15_000 * 2 ** attempts)),
+      },
+    });
+  }
+
+  async lastMetricSnapshot(coingeckoId: string) {
+    return this.prisma.tokenMetricSnapshot.findFirst({
+      where: { coingeckoId },
+      orderBy: { capturedAt: 'desc' },
+    });
+  }
+
+  async saveMetricSnapshot(data: {
+    coingeckoId: string;
+    symbol: string;
+    name: string;
+    price: number;
+    volume24h: number;
+    marketCap: number;
+    tokenScore: number;
+    riskScore: number;
+    liquidityScore: number;
+    whaleOwnership: number;
+  }) {
+    return this.prisma.tokenMetricSnapshot.create({ data });
+  }
+
+  async listWatchlistUniverse(take = 12) {
+    const rows = await this.prisma.watchlistItem.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: take * 4,
+    });
+    const seen = new Set<string>();
+    const out: typeof rows = [];
+    for (const r of rows) {
+      if (seen.has(r.coingeckoId)) continue;
+      seen.add(r.coingeckoId);
+      out.push(r);
+      if (out.length >= take) break;
+    }
+    return out;
+  }
+
+  async latestAnalysisFor(coingeckoId: string) {
+    return this.prisma.analysisReport.findFirst({
+      where: { coingeckoId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async recentAnalysesSince(since: Date, limit = 20) {
+    return this.prisma.analysisReport.findMany({
+      where: { createdAt: { gte: since } },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+  }
+
+  async lastHolderSnapshots(coingeckoId: string, take = 2) {
+    return this.prisma.tokenHolderSnapshot.findMany({
+      where: { coingeckoId },
+      orderBy: { createdAt: 'desc' },
+      take,
+    });
+  }
+
+  async combinedBuyNotional(symbol: string, since: Date) {
+    const trades = await this.prisma.walletTrade.findMany({
+      where: { symbol: symbol.toUpperCase(), side: 'buy', createdAt: { gte: since } },
+      select: { notionalUsd: true },
+    });
+    return trades.reduce((s, t) => s + (t.notionalUsd || 0), 0);
   }
 
   async listCopyPaperTrades(userId: string, limit = 30): Promise<CopyPaperTrade[]> {

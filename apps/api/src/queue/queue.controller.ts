@@ -30,6 +30,7 @@ export class QueueController {
   @Post('tick')
   async tick() {
     const job = await this.blockchain.add('tick', { source: 'manual' });
-    return { ok: true, jobId: job.id, queued: QUEUE.blockchain };
+    const alerts = await this.alerts.add('poll', { source: 'manual' });
+    return { ok: true, jobId: job.id, alertsJobId: alerts.id, queued: [QUEUE.blockchain, QUEUE.alerts] };
   }
 }

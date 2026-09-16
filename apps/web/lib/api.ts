@@ -510,8 +510,40 @@ export const api = {
         triggeredAt?: string | null;
         createdAt: string;
       }>;
+      types?: string[];
       telegram?: { botConfigured: boolean; pollHint: string };
     }>('/alerts'),
+  signalFeed: () =>
+    request<{
+      types: string[];
+      signals: Array<{
+        id: string;
+        type: string;
+        coingeckoId: string;
+        symbol: string;
+        name: string;
+        title: string;
+        body: string;
+        payload: Record<string, unknown>;
+        createdAt: string;
+      }>;
+    }>('/alerts/signals'),
+  scanSignals: () =>
+    request<{
+      ok: boolean;
+      types: string[];
+      signals: Array<{
+        id: string;
+        type: string;
+        coingeckoId: string;
+        symbol: string;
+        name: string;
+        title: string;
+        body: string;
+        payload: Record<string, unknown>;
+        createdAt: string;
+      }>;
+    }>('/alerts/scan', { method: 'POST' }),
   createAlert: (coingeckoId: string, direction: 'above' | 'below', targetPrice: number) =>
     request('/alerts', {
       method: 'POST',

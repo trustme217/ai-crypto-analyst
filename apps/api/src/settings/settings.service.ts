@@ -60,7 +60,7 @@ export class SettingsService {
       await this.telegram.getMe();
       await this.telegram.sendMessage(
         chatId,
-        'ACA test: Telegram alerts are connected. Price alerts will notify this chat.',
+        'ACA test: Telegram is connected. Signal alerts (smart money, score, whale, liquidity, risk, AI, price, volume) will notify this chat.',
       );
     } catch (err) {
       throw new BadRequestException((err as Error).message);

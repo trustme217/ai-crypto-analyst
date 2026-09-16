@@ -3,6 +3,7 @@ import { StoreService } from '../store/store.service';
 import { MarketService } from '../market/market.service';
 import { TelegramService } from '../telegram/telegram.service';
 import { AlertsWatcherService } from './alerts-watcher.service';
+import { SIGNAL_TYPES } from './signal.types';
 
 @Injectable()
 export class AlertsService {
@@ -43,11 +44,34 @@ export class AlertsService {
     );
     return {
       alerts: enriched,
+      types: this.types().types,
       telegram: {
         botConfigured: this.telegram.isConfigured(),
-        pollHint: 'Background watcher checks prices and sends Telegram when a level is hit.',
+        pollHint:
+          'Alert queue is signal-driven: SMART_MONEY_BUY, TOKEN_SCORE_CHANGE, WHALE_ACTIVITY, LIQUIDITY_DROP, RISK_CHANGE, AI_SIGNAL, PRICE, VOLUME → Telegram (retries kept).',
       },
     };
+  }
+
+  types() {
+    return { types: [...SIGNAL_TYPES] };
+  }
+
+  async recentSignals() {
+    const signals = await this.store.listRecentSignals(40);
+    return {
+      types: this.types().types,
+      signals: signals.map((s) => ({
+        ...s,
+        payload: JSON.parse(s.payloadJson || '{}') as Record<string, unknown>,
+      })),
+    };
+  }
+
+  async scan() {
+    await this.watcher.tick();
+    const feed = await this.recentSignals();
+    return { ok: true, types: feed.types, signals: feed.signals };
   }
 
   async create(

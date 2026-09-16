@@ -291,6 +291,59 @@ model TokenPricePoint {
   @@index([symbol, capturedAt])
 }
 
+/// Desk signals pushed to Telegram (phase 10)
+model SignalEvent {
+  id          String   @id @default(cuid())
+  type        String
+  coingeckoId String
+  symbol      String
+  name        String
+  title       String
+  body        String
+  payloadJson String   @default("{}")
+  fingerprint String   @unique
+  createdAt   DateTime @default(now())
+  deliveries  SignalDelivery[]
+
+  @@index([type, createdAt])
+  @@index([coingeckoId, createdAt])
+}
+
+model SignalDelivery {
+  id          String    @id @default(cuid())
+  signalId    String
+  signal      SignalEvent @relation(fields: [signalId], references: [id], onDelete: Cascade)
+  userId      String
+  status      String    @default("pending")
+  attempts    Int       @default(0)
+  nextRetryAt DateTime  @default(now())
+  lastError   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([signalId, userId])
+  @@index([status, nextRetryAt])
+  @@index([userId])
+}
+
+/// Last known token metrics for change/drop signals
+model TokenMetricSnapshot {
+  id              String   @id @default(cuid())
+  coingeckoId     String
+  symbol          String
+  name            String
+  price           Float
+  volume24h       Float
+  marketCap       Float
+  tokenScore      Float
+  riskScore       Float
+  liquidityScore  Float
+  whaleOwnership  Float
+  capturedAt      DateTime @default(now())
+
+  @@index([coingeckoId, capturedAt])
+}
+
 /// Strategy backtest runs
 model BacktestRun {
   id          String    @id @default(cuid())

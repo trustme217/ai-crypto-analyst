@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { StoreService } from '../store/store.service';
 import { MarketService } from '../market/market.service';
 import { TelegramService } from '../telegram/telegram.service';
+import { SignalDetectorService } from './signal-detector.service';
 
 @Injectable()
 export class AlertsWatcherService {
@@ -12,16 +13,20 @@ export class AlertsWatcherService {
     private readonly store: StoreService,
     private readonly market: MarketService,
     private readonly telegram: TelegramService,
+    private readonly detector: SignalDetectorService,
   ) {}
-
 
   async tick() {
     if (this.running) return;
     this.running = true;
     try {
-      if (!this.telegram.isConfigured()) return;
+      const emitted = await this.detector.scan();
+      if (emitted) this.logger.log(`Signal scan emitted ${emitted} event(s)`);
       await this.processPriceHits();
-      await this.processRetries();
+      if (this.telegram.isConfigured()) {
+        await this.processRetries();
+        await this.processSignalDeliveries();
+      }
     } catch (err) {
       this.logger.warn(`Alert watcher tick failed: ${(err as Error).message}`);
     } finally {
@@ -45,16 +50,34 @@ export class AlertsWatcherService {
         (alert.direction === 'below' && price <= alert.targetPrice);
       if (!hit) continue;
 
+      await this.detector.emitPriceLevel({
+        alertId: alert.id,
+        coingeckoId: alert.coingeckoId,
+        symbol: alert.symbol,
+        name: alert.name,
+        direction: alert.direction,
+        targetPrice: alert.targetPrice,
+        price,
+      });
+
       const settings = await this.store.getSettings(alert.userId);
       if (!settings.telegramAlerts || !settings.telegramChatId?.trim()) {
+        await this.store.markAlertTriggered(alert.id);
         continue;
       }
 
-      const text = this.formatMessage(alert.symbol, alert.name, alert.direction, alert.targetPrice, price, alert.coingeckoId);
+      const text = this.formatPriceMessage(
+        alert.symbol,
+        alert.name,
+        alert.direction,
+        alert.targetPrice,
+        price,
+        alert.coingeckoId,
+      );
       try {
         await this.telegram.sendMessage(settings.telegramChatId, text);
         await this.store.markAlertTriggered(alert.id);
-        this.logger.log(`Telegram alert sent for ${alert.symbol}`);
+        this.logger.log(`Telegram PRICE alert sent for ${alert.symbol}`);
       } catch (err) {
         await this.store.enqueueAlertDelivery(alert.id, (err as Error).message);
         this.logger.warn(`Queued retry for ${alert.id}: ${(err as Error).message}`);
@@ -82,7 +105,7 @@ export class AlertsWatcherService {
       } catch {
         /* use target as fallback in message */
       }
-      const text = this.formatMessage(
+      const text = this.formatPriceMessage(
         alert.symbol,
         alert.name,
         alert.direction,
@@ -101,7 +124,33 @@ export class AlertsWatcherService {
     }
   }
 
-  private formatMessage(
+  private async processSignalDeliveries() {
+    const due = await this.store.listDueSignalDeliveries(30);
+    for (const delivery of due) {
+      const settings = await this.store.getSettings(delivery.userId);
+      if (!settings.telegramAlerts || !settings.telegramChatId?.trim()) {
+        await this.store.markSignalDeliveryFailed(
+          delivery.id,
+          delivery.attempts + 1,
+          'Telegram not configured',
+        );
+        continue;
+      }
+      try {
+        await this.telegram.sendMessage(settings.telegramChatId, delivery.signal.body);
+        await this.store.markSignalDeliverySent(delivery.id);
+        this.logger.log(`Telegram ${delivery.signal.type} sent for ${delivery.signal.symbol}`);
+      } catch (err) {
+        await this.store.markSignalDeliveryFailed(
+          delivery.id,
+          delivery.attempts + 1,
+          (err as Error).message,
+        );
+      }
+    }
+  }
+
+  private formatPriceMessage(
     symbol: string,
     name: string,
     direction: string,
@@ -110,7 +159,7 @@ export class AlertsWatcherService {
     coingeckoId: string,
   ) {
     return (
-      `ACA Alert: ${symbol} (${name})\n` +
+      `PRICE\n$${symbol} / ${name}\n` +
       `Price is ${direction} $${target}\n` +
       `Current: $${price}\n` +
       `CoinGecko: ${coingeckoId}`

@@ -14,7 +14,7 @@ Research desk for crypto markets + Solana + AI briefs + paper alerts/copy.
 | Jobs | **BullMQ** pipeline (blockchain → scoring → AI → alerts) on local Redis |
 | Portfolio | Paper positions with live PnL |
 | Copy trading | Follow demo desks → **simulated paper fills** |
-| Alerts | Price above/below → **Telegram** (with retries) |
+| Alerts | **Signal-driven Telegram** (SMART_MONEY_BUY, TOKEN_SCORE_CHANGE, WHALE_ACTIVITY, LIQUIDITY_DROP, RISK_CHANGE, AI_SIGNAL, PRICE, VOLUME) + retries |
 | Watchlist | Guest/account sync — **Alert** shortcut from watchlist |
 | Settings | Risk, signal style, Telegram chat ID |
 | AI | **Agent desk** — Token / Wallet / Risk → Research → final brief |
@@ -55,12 +55,12 @@ API `start:dev` runs `db:up` + `redis:up` (via `npm run dev:api`) then Prisma pu
 
 Optional: `OPENAI_API_KEY` for LLM mode. Heuristic AI works without it.
 
-### Telegram price alerts
+### Telegram signals
 
 1. Create a bot with [BotFather](https://t.me/BotFather); set `TELEGRAM_BOT_TOKEN` in `.env`.
 2. Restart API; message the bot `/start`.
 3. Settings → pick chat ID → enable Telegram → Send test.
-4. Create alerts on **Alerts**. Hits notify Telegram (failed sends retry with backoff).
+4. The alert queue scans engines every 60s and pushes signal cards (smart-money cluster, score/risk/liquidity/volume/whale/AI, plus PRICE levels you set on **Alerts**). Failed sends retry with backoff.
 
 ### Auth
 
@@ -89,7 +89,7 @@ npm run dev:web
 - `GET  /holders/:id` · `GET /risk/:id` · `GET /queue` · `POST /queue/tick`
 - `GET  /smart-money/wallets|signals|events`
 - `POST /analysis` · `GET /analysis/desk/:id` · `POST /chat` · `GET/POST /chat/sessions`
-- `GET/POST/DELETE /alerts` · `GET/PATCH /settings` · Telegram test/chats
+- `GET/POST/DELETE /alerts` · `GET /alerts/signals` · `POST /alerts/scan` · `GET/PATCH /settings` · Telegram test/chats
 - `GET  /copy-trading/leaders` · follows · trades
 - `POST /auth/register` · `/auth/login`
 
