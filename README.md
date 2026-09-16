@@ -9,7 +9,7 @@ Research desk for crypto markets + Solana + AI briefs + paper alerts/copy.
 | Market | CoinGecko **top-by-cap** overview, search, token detail, heatmap |
 | Signals | **Token Score** (SM 30% / Liq 15% / Vol 15% / Mom 15% / Hold 15% / Risk 10%) — deterministic |
 | Backtest | Record score + signal price, fill **5m / 15m / 1h / 6h / 24h** returns, bucket averages |
-| Strategy | JSON conditions → **Risk Engine** gate → **paper trade** |
+| Strategy | Signal pipeline → **paper books** (AI-only vs Momentum vs Smart-money vs Smart-money + AI) + PnL |
 | Smart money | Tracked wallets + **RPC ingest → normalized events → analytics** (`/smart-money`) |
 | Holders | Distribution intel (top 10/20, SM/whale/creator, concentration alerts) |
 | Risk | **Risk Engine** (liq / holders / creator / sell / volume / contract) before AI |

@@ -29,6 +29,8 @@ export type StrategyFacts = {
   holderQuality: number;
   riskScore: number;
   sellPressure?: number;
+  /** Research Agent / analysis composite — not LLM-invented */
+  aiScore?: number;
 };
 
 export function matchConditions(
@@ -71,5 +73,37 @@ export const DEFAULT_STRATEGIES: Array<{
       tokenScore: { gte: 80 },
       liquidity: { gte: 300000 },
     },
+  },
+  {
+    name: 'AI-only',
+    slug: 'ai-only',
+    side: 'long',
+    maxRiskScore: 70,
+    notionalUsd: 250,
+    conditions: { aiScore: { gte: 60 } },
+  },
+  {
+    name: 'Momentum',
+    slug: 'momentum',
+    side: 'long',
+    maxRiskScore: 70,
+    notionalUsd: 250,
+    conditions: { momentum: { gte: 55 }, tokenScore: { gte: 55 } },
+  },
+  {
+    name: 'Smart-money',
+    slug: 'smart-money',
+    side: 'long',
+    maxRiskScore: 70,
+    notionalUsd: 250,
+    conditions: { smartMoneyScore: { gte: 85 } },
+  },
+  {
+    name: 'Smart-money + AI',
+    slug: 'smart-money-ai',
+    side: 'long',
+    maxRiskScore: 70,
+    notionalUsd: 250,
+    conditions: { smartMoneyScore: { gte: 80 }, aiScore: { gte: 55 } },
   },
 ];

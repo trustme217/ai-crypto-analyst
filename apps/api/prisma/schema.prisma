@@ -383,6 +383,7 @@ model Strategy {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   fills         StrategyFill[]
+  positions     StrategyPosition[]
 }
 
 model StrategyFill {
@@ -399,12 +400,29 @@ model StrategyFill {
   tokenScore       Float
   smartMoneyScore  Float
   riskScore        Float
+  aiScore          Float?
   fingerprint      String   @unique
   note             String?
   createdAt        DateTime @default(now())
 
-  @@index([strategyId, createdAt])
   @@index([coingeckoId, createdAt])
+}
+
+model StrategyPosition {
+  id            String   @id @default(cuid())
+  strategyId    String
+  strategy      Strategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+  coingeckoId   String
+  symbol        String
+  name          String
+  quantity      Float
+  avgCostUsd    Float
+  realizedPnl   Float    @default(0)
+  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now())
+
+  @@unique([strategyId, coingeckoId])
+  @@index([strategyId])
 }
 
 /// Strategy backtest runs

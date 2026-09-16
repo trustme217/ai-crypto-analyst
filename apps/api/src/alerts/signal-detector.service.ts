@@ -263,6 +263,7 @@ export class SignalDetectorService {
       volume24h: coin.market.volume24h,
       marketCap: coin.market.marketCap,
     });
+    const analysis = await this.store.latestAnalysisFor(coin.id);
     await this.strategies.consider({
       coingeckoId: coin.id,
       symbol: coin.symbol,
@@ -278,10 +279,10 @@ export class SignalDetectorService {
       holderQuality: scores.holderQuality,
       riskScore: risk.riskScore,
       sellPressure: risk.sellPressure,
+      aiScore: analysis?.score,
     });
 
     const prev = await this.store.lastMetricSnapshot(coin.id);
-    const analysis = await this.store.latestAnalysisFor(coin.id);
     const snaps = await this.store.lastHolderSnapshots(coin.id, 2);
     let n = 0;
 

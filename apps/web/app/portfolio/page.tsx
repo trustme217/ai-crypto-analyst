@@ -51,6 +51,11 @@ export default function PortfolioPage() {
         <div className="eyebrow">Portfolio</div>
         <h1>Paper positions & PnL.</h1>
       </header>
+      <p className="muted" style={{ marginTop: '0.5rem' }}>
+        Personal book below. Signal pipeline books (Smart Money → Token Score → AI → Strategy → Risk →
+        paper fill → PnL) live on <Link href="/strategies">Strategy</Link> so you can compare AI-only vs
+        Momentum vs Smart-money vs Smart-money + AI.
+      </p>
 
       {error && (
         <p className="error">

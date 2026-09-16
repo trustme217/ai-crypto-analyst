@@ -6,6 +6,7 @@ import { HoldersService } from '../holders/holders.service';
 import { RiskEngineService, type TokenRiskReport } from '../risk/risk-engine.service';
 import { BacktestService } from '../backtest/backtest.service';
 import { StrategyService } from '../strategy/strategy.service';
+import { StoreService } from '../store/store.service';
 
 export type TradingSignal = {
   id: string;
@@ -52,6 +53,7 @@ export class SignalsService {
     private readonly riskEngine: RiskEngineService,
     private readonly backtest: BacktestService,
     private readonly strategies: StrategyService,
+    private readonly store: StoreService,
   ) {}
 
   async list(style: 'conservative' | 'balanced' | 'aggressive' = 'balanced'): Promise<{
@@ -116,6 +118,7 @@ export class SignalsService {
         price,
         source: 'token-score',
       });
+      const analysis = await this.store.latestAnalysisFor(c.id);
       await this.strategies.consider({
         coingeckoId: c.id,
         symbol: c.symbol,
@@ -131,6 +134,7 @@ export class SignalsService {
         holderQuality: scores.holderQuality,
         riskScore: risk.riskScore,
         sellPressure: risk.sellPressure,
+        aiScore: analysis?.score,
       });
 
       let side: TradingSignal['side'] = 'neutral';

@@ -669,8 +669,31 @@ export const api = {
         tokenScore: number;
         smartMoneyScore: number;
         riskScore: number;
+        aiScore?: number | null;
         note: string | null;
         createdAt: string;
+      }>;
+      compare?: string[];
+      books?: Array<{
+        id: string;
+        name: string;
+        slug: string;
+        fills: number;
+        cost: number;
+        value: number;
+        realizedPnl: number;
+        pnl: number;
+        pnlPct: number;
+        positions: Array<{
+          coingeckoId: string;
+          symbol: string;
+          quantity: number;
+          avgCostUsd: number;
+          price: number;
+          marketValue: number;
+          pnl: number;
+          pnlPct: number;
+        }>;
       }>;
     }>('/strategies'),
   runStrategies: () =>

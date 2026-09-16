@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { api, formatUsd } from '@/lib/api';
+import { api, formatPct, formatUsd } from '@/lib/api';
 
 type Desk = Awaited<ReturnType<typeof api.strategies>>;
 
@@ -36,24 +36,64 @@ export default function StrategiesPage() {
     }
   }
 
+  const flow = desk?.flow || [
+    'Smart Money Signal',
+    'Token Score',
+    'AI Analysis',
+    'Strategy',
+    'Risk Engine',
+    'Paper Trade',
+    'Position',
+    'PnL',
+  ];
+
   return (
     <main className="section">
       <header className="page-head">
         <div className="eyebrow">Strategy</div>
-        <h1>JSON rules → paper fills.</h1>
+        <h1>Signal → paper book → PnL.</h1>
       </header>
       <p className="muted" style={{ marginTop: '0.5rem' }}>
-        {(desk?.flow || ['Signal', 'Strategy', 'Risk Engine', 'Paper Trade']).join(' → ')}. Conditions are
-        deterministic. Risk Engine must clear before a paper trade. Not live.{' '}
-        <Link href="/signals">Signals</Link> · <Link href="/backtest">Backtest</Link>
+        {flow.join(' → ')}. Compare AI-only vs Momentum vs Smart-money vs Smart-money + AI without real
+        money. <Link href="/signals">Signals</Link> · <Link href="/portfolio">Portfolio</Link>
       </p>
 
       <div className="cta-row" style={{ marginTop: '0.85rem' }}>
         <button className="btn" type="button" onClick={onRun} disabled={running}>
-          {running ? 'Evaluating…' : 'Run strategies'}
+          {running ? 'Evaluating…' : 'Run pipeline'}
         </button>
       </div>
       {error && <p className="error">{error}</p>}
+
+      <div className="panel" style={{ marginTop: '1.1rem' }}>
+        <h3 className="panel-title">Strategy comparison (paper)</h3>
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Book</th>
+              <th>Fills</th>
+              <th>Cost</th>
+              <th>Value</th>
+              <th>PnL</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(desk?.books || []).map((b) => (
+              <tr key={b.id}>
+                <td>
+                  <strong>{b.name}</strong>
+                </td>
+                <td style={{ fontFamily: 'var(--font-mono)' }}>{b.fills}</td>
+                <td style={{ fontFamily: 'var(--font-mono)' }}>{formatUsd(b.cost)}</td>
+                <td style={{ fontFamily: 'var(--font-mono)' }}>{formatUsd(b.value)}</td>
+                <td className={b.pnl >= 0 ? 'up' : 'down'} style={{ fontFamily: 'var(--font-mono)' }}>
+                  {formatUsd(b.pnl)} ({formatPct(b.pnlPct)})
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <div className="grid-2" style={{ marginTop: '1.1rem' }}>
         {(desk?.strategies || []).map((s) => (
@@ -76,16 +116,43 @@ export default function StrategiesPage() {
             </pre>
           </div>
         ))}
-        {!desk?.strategies.length && (
-          <div className="panel">
-            <p className="muted">No strategies seeded yet.</p>
-          </div>
-        )}
+      </div>
+
+      <div className="panel" style={{ marginTop: '1.1rem' }}>
+        <h3 className="panel-title">Positions</h3>
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Book</th>
+              <th>Asset</th>
+              <th>Qty</th>
+              <th>Value</th>
+              <th>PnL</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(desk?.books || []).flatMap((b) =>
+              b.positions.map((p) => (
+                <tr key={`${b.id}-${p.coingeckoId}`}>
+                  <td>{b.name}</td>
+                  <td>
+                    <Link href={`/token/${p.coingeckoId}`}>
+                      <strong>{p.symbol}</strong>
+                    </Link>
+                  </td>
+                  <td style={{ fontFamily: 'var(--font-mono)' }}>{p.quantity.toFixed(4)}</td>
+                  <td style={{ fontFamily: 'var(--font-mono)' }}>{formatUsd(p.marketValue)}</td>
+                  <td className={p.pnl >= 0 ? 'up' : 'down'}>{formatPct(p.pnlPct)}</td>
+                </tr>
+              )),
+            )}
+          </tbody>
+        </table>
       </div>
 
       <div className="panel" style={{ marginTop: '1.1rem' }}>
         <h3 className="panel-title">Paper trades</h3>
-        {!desk?.fills.length && <p className="muted">No strategy fills yet. Run strategies after scores land.</p>}
+        {!desk?.fills.length && <p className="muted">No strategy fills yet. Run the pipeline after scores land.</p>}
         <table className="table">
           <thead>
             <tr>
@@ -95,6 +162,7 @@ export default function StrategiesPage() {
               <th>Notional</th>
               <th>Token</th>
               <th>SM</th>
+              <th>AI</th>
               <th>Risk</th>
             </tr>
           </thead>
@@ -113,6 +181,7 @@ export default function StrategiesPage() {
                 <td style={{ fontFamily: 'var(--font-mono)' }}>{formatUsd(f.notionalUsd)}</td>
                 <td style={{ fontFamily: 'var(--font-mono)' }}>{f.tokenScore}</td>
                 <td style={{ fontFamily: 'var(--font-mono)' }}>{f.smartMoneyScore}</td>
+                <td style={{ fontFamily: 'var(--font-mono)' }}>{f.aiScore ?? '—'}</td>
                 <td style={{ fontFamily: 'var(--font-mono)' }}>{f.riskScore}</td>
               </tr>
             ))}
