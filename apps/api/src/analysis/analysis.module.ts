@@ -9,5 +9,6 @@ import { RiskModule } from '../risk/risk.module';
   imports: [MarketModule, HoldersModule, RiskModule],
   controllers: [AnalysisController],
   providers: [AnalysisService],
+  exports: [AnalysisService],
 })
 export class AnalysisModule {}

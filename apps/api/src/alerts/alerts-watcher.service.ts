@@ -1,35 +1,19 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Injectable, Logger } from '@nestjs/common';
 import { StoreService } from '../store/store.service';
 import { MarketService } from '../market/market.service';
 import { TelegramService } from '../telegram/telegram.service';
 
 @Injectable()
-export class AlertsWatcherService implements OnModuleInit, OnModuleDestroy {
+export class AlertsWatcherService {
   private readonly logger = new Logger(AlertsWatcherService.name);
-  private timer: NodeJS.Timeout | null = null;
   private running = false;
 
   constructor(
     private readonly store: StoreService,
     private readonly market: MarketService,
     private readonly telegram: TelegramService,
-    private readonly config: ConfigService,
   ) {}
 
-  onModuleInit() {
-    const seconds = Math.max(20, Number(this.config.get('ALERT_POLL_SECONDS') || 60));
-    this.logger.log(
-      `Alert watcher started (every ${seconds}s)` +
-        (this.telegram.isConfigured() ? '' : ' — TELEGRAM_BOT_TOKEN missing'),
-    );
-    void this.tick();
-    this.timer = setInterval(() => void this.tick(), seconds * 1000);
-  }
-
-  onModuleDestroy() {
-    if (this.timer) clearInterval(this.timer);
-  }
 
   async tick() {
     if (this.running) return;

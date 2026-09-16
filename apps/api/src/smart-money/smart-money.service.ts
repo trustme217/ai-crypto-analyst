@@ -1,6 +1,9 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.module';
 import { WalletIngestService } from './wallet-ingest.service';
+import { QUEUE } from '../queue/queue.constants';
 
 export type SmartMoneySignal = {
   symbol: string;
@@ -91,14 +94,12 @@ export class SmartMoneyService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly ingest: WalletIngestService,
+    @InjectQueue(QUEUE.blockchain) private readonly blockchain: Queue,
   ) {}
 
   async onModuleInit() {
     await this.ensureSeed();
-    // Continuous ingest: tracked → RPC → parse → events → analytics → SM score
-    setInterval(() => void this.ingest.ingestTick(), 90_000);
-    setTimeout(() => void this.ingest.ingestTick(), 5_000);
-    this.logger.log('Wallet ingest pipeline started (every ~90s)');
+    this.logger.log('Wallet ingest is queue-driven (BullMQ blockchain queue)');
   }
 
   private async ensureSeed() {
@@ -248,6 +249,6 @@ export class SmartMoneyService implements OnModuleInit {
   }
 
   triggerIngest() {
-    return this.ingest.ingestTick();
+    return this.blockchain.add('tick', { source: 'manual' });
   }
 }

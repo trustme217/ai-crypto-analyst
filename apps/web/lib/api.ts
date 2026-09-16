@@ -442,7 +442,16 @@ export const api = {
       pipeline: string[];
     }>(`/smart-money/events?limit=${limit}`),
   smartMoneyIngest: () =>
-    request<{ ok: boolean; message: string }>('/smart-money/ingest', { method: 'POST' }),
+    request<{ ok: boolean; message: string; queued?: boolean; jobId?: string }>(
+      '/smart-money/ingest',
+      { method: 'POST' },
+    ),
+  queueStatus: () =>
+    request<{
+      pipeline: string[];
+      redis: string;
+      queues: Record<string, Record<string, number>>;
+    }>('/queue'),
   portfolio: () =>
     request<{
       positions: Array<{

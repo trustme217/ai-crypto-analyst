@@ -15,15 +15,17 @@ import { CopyTradingModule } from './copy-trading/copy-trading.module';
 import { SmartMoneyModule } from './smart-money/smart-money.module';
 import { HoldersModule } from './holders/holders.module';
 import { RiskModule } from './risk/risk.module';
+import { RedisBullModule } from './queue/redis-bull.module';
+import { QueueWorkersModule } from './queue/queue-workers.module';
 import { HealthController } from './health.controller';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      // Prefer monorepo root .env (TELEGRAM_BOT_TOKEN, JWT, etc.), then apps/api/.env
       envFilePath: ['../../.env', '.env'],
     }),
+    RedisBullModule,
     StoreModule,
     AuthModule,
     MarketModule,
@@ -39,6 +41,7 @@ import { HealthController } from './health.controller';
     SmartMoneyModule,
     HoldersModule,
     RiskModule,
+    QueueWorkersModule,
   ],
   controllers: [HealthController],
 })

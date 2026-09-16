@@ -9,6 +9,6 @@ import { SolanaModule } from '../solana/solana.module';
   imports: [PrismaModule, SolanaModule],
   controllers: [SmartMoneyController],
   providers: [SmartMoneyService, WalletIngestService],
-  exports: [SmartMoneyService],
+  exports: [SmartMoneyService, WalletIngestService],
 })
 export class SmartMoneyModule {}

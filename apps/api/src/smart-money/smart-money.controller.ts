@@ -24,7 +24,7 @@ export class SmartMoneyController {
 
   @Post('ingest')
   async ingest() {
-    await this.smart.triggerIngest();
-    return { ok: true, message: 'Ingest tick started' };
+    const job = await this.smart.triggerIngest();
+    return { ok: true, queued: true, jobId: job.id, message: 'Queued on blockchain → scoring → AI → alerts' };
   }
 }

@@ -11,6 +11,7 @@ Research desk for crypto markets + Solana + AI briefs + paper alerts/copy.
 | Smart money | Tracked wallets + **RPC ingest → normalized events → analytics** (`/smart-money`) |
 | Holders | Distribution intel (top 10/20, SM/whale/creator, concentration alerts) |
 | Risk | **Risk Engine** (liq / holders / creator / sell / volume / contract) before AI |
+| Jobs | **BullMQ** pipeline (blockchain → scoring → AI → alerts) on local Redis |
 | Portfolio | Paper positions with live PnL |
 | Copy trading | Follow demo desks → **simulated paper fills** |
 | Alerts | Price above/below → **Telegram** (with retries) |
@@ -22,18 +23,21 @@ Research desk for crypto markets + Solana + AI briefs + paper alerts/copy.
 | Auth | Register / login (JWT 24h) |
 | Size | Paper notional → token size estimator (`/swap`) |
 
-**Out of scope:** Docker, Redis/BullMQ, live trading, custody, real DEX swaps.
+**Out of scope:** Docker, live trading, custody, real DEX swaps.
 
 ## Stack
 
 ```
 apps/web   Next.js UI                      :3000
-apps/api   NestJS + Prisma PostgreSQL      :3001
+apps/api   NestJS + Prisma + BullMQ        :3001
 apps/ai    Python AI (stdlib server)       :8001
 Postgres   local cluster (no Docker)       :5434
+Redis      local process (no Docker)       :6379
 ```
 
-Persistence: local PostgreSQL at `127.0.0.1:5434` (data dir `apps/api/data/pgdata`). Uses an installed PostgreSQL, **not Docker**. `npm run db:up` / `start.bat` start the cluster. First run copies existing SQLite `aca.db` if present. Schema includes wallet events, holder snapshots, price history, analyses, paper trades, alerts, and backtest runs.
+Pipeline: Solana → Blockchain Queue → Parser → PostgreSQL → Scoring Queue → Scoring → AI Queue → AI → Alert Queue → Telegram.
+
+Persistence: local PostgreSQL at `127.0.0.1:5434`. Jobs: local Redis at `127.0.0.1:6379` via BullMQ. Neither uses Docker. `npm run db:up` and `npm run redis:up` start them (`start.bat` does both).
 
 ## Setup
 
@@ -47,7 +51,7 @@ npm install
 
 `DATABASE_URL` defaults to `postgresql://aca@127.0.0.1:5434/aca`.
 
-API `start:dev` runs `db:up` (via `npm run dev:api`) then `prisma generate` + `prisma db push` + one-time SQLite import.
+API `start:dev` runs `db:up` + `redis:up` (via `npm run dev:api`) then Prisma push.
 
 Optional: `OPENAI_API_KEY` for LLM mode. Heuristic AI works without it.
 
@@ -82,7 +86,8 @@ npm run dev:web
 
 - `GET  /market/overview` · `/market/search` · `/market/coins/:id`
 - `GET  /signals?style=`
-- `GET  /holders/:id` · `GET /risk/:id` · `GET /smart-money/wallets|signals|events`
+- `GET  /holders/:id` · `GET /risk/:id` · `GET /queue` · `POST /queue/tick`
+- `GET  /smart-money/wallets|signals|events`
 - `POST /analysis` · `POST /chat` · `GET/POST /chat/sessions`
 - `GET/POST/DELETE /alerts` · `GET/PATCH /settings` · Telegram test/chats
 - `GET  /copy-trading/leaders` · follows · trades
@@ -90,5 +95,4 @@ npm run dev:web
 
 ## Next upgrades (not in this MVP)
 
-1. Redis + BullMQ for jobs  
-2. HttpOnly cookie auth, stronger rate limits  
+1. HttpOnly cookie auth, stronger rate limits  

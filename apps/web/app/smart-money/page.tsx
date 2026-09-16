@@ -58,8 +58,8 @@ export default function SmartMoneyPage() {
         <h1>Which wallets are buying now?</h1>
       </header>
       <p className="muted">
-        Continuous ingest: tracked wallets → Solana RPC → parser → normalized events → analytics →
-        smart-money score. Feeds Token Score SM weight (30%).
+        BullMQ pipeline: Solana → blockchain queue → parser → PostgreSQL → scoring → AI → alerts →
+        Telegram. Feeds Token Score SM weight (30%).
       </p>
       {pipeline.length > 0 && (
         <p className="muted" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>

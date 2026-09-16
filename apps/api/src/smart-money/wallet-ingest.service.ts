@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.module';
 import { SolanaService } from '../solana/solana.service';
 import { parseWalletTransaction } from './tx-parser';
+import { PIPELINE } from '../queue/queue.constants';
 
 const MINT_META: Record<string, { symbol: string; coingeckoId: string | null }> = {
   So11111111111111111111111111111111111111112: { symbol: 'SOL', coingeckoId: 'solana' },
@@ -271,16 +272,7 @@ export class WalletIngestService {
         valueUsd: e.valueUsd,
         timestamp: e.timestamp.toISOString(),
       })),
-      pipeline: [
-        'tracked wallets',
-        'Solana RPC',
-        'transactions',
-        'transaction parser',
-        'normalized events',
-        'PostgreSQL',
-        'wallet analytics',
-        'smart-money score',
-      ],
+      pipeline: [...PIPELINE],
     };
   }
 }
