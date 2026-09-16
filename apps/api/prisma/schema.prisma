@@ -344,6 +344,32 @@ model TokenMetricSnapshot {
   @@index([coingeckoId, capturedAt])
 }
 
+/// Recorded Token Score observations + forward returns (phase 11)
+model ScoredSignal {
+  id           String    @id @default(cuid())
+  coingeckoId  String
+  symbol       String
+  name         String
+  score        Float
+  signalPrice  Float
+  source       String    @default("token-score")
+  fingerprint  String    @unique
+  ret5m        Float?
+  ret15m       Float?
+  ret1h        Float?
+  ret6h        Float?
+  ret24h       Float?
+  price5m      Float?
+  price15m     Float?
+  price1h      Float?
+  price6h      Float?
+  price24h     Float?
+  createdAt    DateTime  @default(now())
+
+  @@index([score, createdAt])
+  @@index([coingeckoId, createdAt])
+}
+
 /// Strategy backtest runs
 model BacktestRun {
   id          String    @id @default(cuid())

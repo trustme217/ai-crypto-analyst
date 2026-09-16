@@ -8,6 +8,7 @@ Research desk for crypto markets + Solana + AI briefs + paper alerts/copy.
 |------|------------|
 | Market | CoinGecko **top-by-cap** overview, search, token detail, heatmap |
 | Signals | **Token Score** (SM 30% / Liq 15% / Vol 15% / Mom 15% / Hold 15% / Risk 10%) — deterministic |
+| Backtest | Record score + signal price, fill **5m / 15m / 1h / 6h / 24h** returns, bucket averages |
 | Smart money | Tracked wallets + **RPC ingest → normalized events → analytics** (`/smart-money`) |
 | Holders | Distribution intel (top 10/20, SM/whale/creator, concentration alerts) |
 | Risk | **Risk Engine** (liq / holders / creator / sell / volume / contract) before AI |
@@ -86,6 +87,7 @@ npm run dev:web
 
 - `GET  /market/overview` · `/market/search` · `/market/coins/:id`
 - `GET  /signals?style=`
+- `GET  /backtest` · `POST /backtest/fill`
 - `GET  /holders/:id` · `GET /risk/:id` · `GET /queue` · `POST /queue/tick`
 - `GET  /smart-money/wallets|signals|events`
 - `POST /analysis` · `GET /analysis/desk/:id` · `POST /chat` · `GET/POST /chat/sessions`

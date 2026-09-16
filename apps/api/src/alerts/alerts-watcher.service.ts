@@ -3,6 +3,7 @@ import { StoreService } from '../store/store.service';
 import { MarketService } from '../market/market.service';
 import { TelegramService } from '../telegram/telegram.service';
 import { SignalDetectorService } from './signal-detector.service';
+import { BacktestService } from '../backtest/backtest.service';
 
 @Injectable()
 export class AlertsWatcherService {
@@ -14,6 +15,7 @@ export class AlertsWatcherService {
     private readonly market: MarketService,
     private readonly telegram: TelegramService,
     private readonly detector: SignalDetectorService,
+    private readonly backtest: BacktestService,
   ) {}
 
   async tick() {
@@ -22,6 +24,7 @@ export class AlertsWatcherService {
     try {
       const emitted = await this.detector.scan();
       if (emitted) this.logger.log(`Signal scan emitted ${emitted} event(s)`);
+      await this.backtest.fillDue();
       await this.processPriceHits();
       if (this.telegram.isConfigured()) {
         await this.processRetries();

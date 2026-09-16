@@ -612,6 +612,35 @@ export const api = {
         createdAt: string;
       }>;
     }>('/copy-trading/trades'),
+  backtest: () =>
+    request<{
+      totalSignals: number;
+      target: number;
+      horizons: Array<'5m' | '15m' | '1h' | '6h' | '24h'>;
+      buckets: Array<{
+        range: string;
+        min: number;
+        max: number;
+        count: number;
+        avg: Record<'5m' | '15m' | '1h' | '6h' | '24h', number | null>;
+        filled: Record<'5m' | '15m' | '1h' | '6h' | '24h', number>;
+      }>;
+      recent: Array<{
+        id: string;
+        coingeckoId: string;
+        symbol: string;
+        name: string;
+        score: number;
+        signalPrice: number;
+        source: string;
+        bucket: string;
+        returns: Record<'5m' | '15m' | '1h' | '6h' | '24h', number | null>;
+        createdAt: string;
+      }>;
+      disclaimer: string;
+    }>('/backtest'),
+  fillBacktest: () =>
+    request<{ ok: boolean; filled: number; totalSignals: number }>('/backtest/fill', { method: 'POST' }),
 };
 
 export function formatUsd(n: number, digits = 2) {

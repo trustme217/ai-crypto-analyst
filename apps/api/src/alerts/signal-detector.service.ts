@@ -5,6 +5,7 @@ import { SmartMoneyService } from '../smart-money/smart-money.service';
 import { HoldersService } from '../holders/holders.service';
 import { RiskEngineService } from '../risk/risk-engine.service';
 import { TokenScoreService } from '../scoring/token-score.service';
+import { BacktestService } from '../backtest/backtest.service';
 import { formatSignalMessage, signalTitle } from './signal-format';
 import type { SignalDraft, SignalPayload, SignalType } from './signal.types';
 
@@ -19,6 +20,7 @@ export class SignalDetectorService {
     private readonly holders: HoldersService,
     private readonly risk: RiskEngineService,
     private readonly tokenScore: TokenScoreService,
+    private readonly backtest: BacktestService,
   ) {}
 
   async scan(): Promise<number> {
@@ -243,6 +245,21 @@ export class SignalDetectorService {
       smartMoneyScore: sm,
       holderQualityScore: hold.holderQualityScore,
       riskScore: risk.riskScore,
+    });
+    await this.backtest.observe({
+      coingeckoId: coin.id,
+      symbol: coin.symbol,
+      name: coin.name,
+      score: scores.score,
+      price: coin.market.price,
+      source: 'token-score',
+    });
+    await this.backtest.writePrice({
+      coingeckoId: coin.id,
+      symbol: coin.symbol,
+      price: coin.market.price,
+      volume24h: coin.market.volume24h,
+      marketCap: coin.market.marketCap,
     });
 
     const prev = await this.store.lastMetricSnapshot(coin.id);

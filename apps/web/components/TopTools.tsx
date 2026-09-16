@@ -33,6 +33,9 @@ export function TopTools() {
       <Link href="/signals" className="tool-btn">
         Signals
       </Link>
+      <Link href="/backtest" className="tool-btn">
+        Backtest
+      </Link>
       <Link href="/heatmap" className="tool-btn">
         Heatmap
       </Link>

@@ -47,7 +47,8 @@ export default function SignalsPage() {
 
       <p className="muted">
         Scores are calculated from rules (not LLM). See{' '}
-        <Link href="/smart-money">Smart money</Link> for wallet-driven SM component.
+        <Link href="/smart-money">Smart money</Link> for wallet-driven SM component, and{' '}
+        <Link href="/backtest">Backtest</Link> for 5m–24h forward returns by score bucket.
       </p>
 
       <div className="cta-row">
