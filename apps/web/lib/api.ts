@@ -45,6 +45,14 @@ export type CoinDetail = {
   };
 };
 
+export type AgentBrief = {
+  name: string;
+  title: string;
+  score: number;
+  checks: Array<{ label: string; value: string | number; note?: string }>;
+  findings: string[];
+};
+
 export type AnalysisResult = {
   id: string;
   coin: {
@@ -85,6 +93,16 @@ export type AnalysisResult = {
     contractRisk?: number;
   };
   createdAt: string;
+  agents?: {
+    graph: string[][];
+    generatedAt: string;
+    agents: {
+      token: AgentBrief;
+      wallet: AgentBrief;
+      risk: AgentBrief;
+      research: AgentBrief;
+    };
+  };
 };
 
 export type TradingSignal = {

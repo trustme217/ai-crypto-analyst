@@ -1,9 +1,9 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { StoreService } from '../store/store.service';
-import { MarketService } from '../market/market.service';
-import { HoldersService } from '../holders/holders.service';
 import { RiskEngineService } from '../risk/risk-engine.service';
+import { AgentOrchestrator } from '../agents/agent-orchestrator.service';
+import type { OrchestratorResult } from '../agents/agent.types';
 
 export type AiAnalysisResult = {
   sentiment: 'bullish' | 'bearish' | 'neutral';
@@ -22,8 +22,7 @@ export class AnalysisService {
 
   constructor(
     private readonly store: StoreService,
-    private readonly market: MarketService,
-    private readonly holders: HoldersService,
+    private readonly orchestrator: AgentOrchestrator,
     private readonly riskEngine: RiskEngineService,
     private readonly config: ConfigService,
   ) {
@@ -31,26 +30,9 @@ export class AnalysisService {
   }
 
   async analyze(coingeckoId: string, userId?: string, timeframe = '1d') {
-    const coin = await this.market.getCoin(coingeckoId);
-    const intel = await this.holders.getIntelligence({
-      coingeckoId: coin.id,
-      symbol: coin.symbol,
-      marketCap: coin.market.marketCap,
-      marketCapRank: null,
-      volume24h: coin.market.volume24h,
-    });
-    const riskReport = await this.riskEngine.evaluate({
-      coingeckoId: coin.id,
-      symbol: coin.symbol,
-      marketCap: coin.market.marketCap,
-      volume24h: coin.market.volume24h,
-      change24h: coin.market.change24h,
-      change7d: coin.market.change7d,
-      categories: coin.categories,
-      holderConcentration: intel.holderConcentration,
-      creatorOwnership: intel.creatorOwnership,
-    });
+    const { coin, desk, intel, riskReport } = await this.orchestrator.run(coingeckoId);
     const riskEngine = this.riskEngine.toAiJson(riskReport);
+    const research = desk.agents.research;
 
     const payload = {
       coingecko_id: coin.id,
@@ -71,6 +53,8 @@ export class AnalysisService {
         holderQualityScore: intel.holderQualityScore,
         alerts: intel.alerts,
       },
+      agents: desk.agents,
+      orchestrator: desk.graph,
     };
 
     let result: AiAnalysisResult;
@@ -89,6 +73,21 @@ export class AnalysisService {
       );
     }
 
+    result.score = research.score;
+    result.sentiment = research.score >= 60 ? 'bullish' : research.score <= 40 ? 'bearish' : 'neutral';
+    const lead =
+      `Research Agent composite ${research.score}/100 (${result.sentiment}). ` +
+      `Token ${desk.agents.token.score} · Wallet ${desk.agents.wallet.score} · Risk ${desk.agents.risk.score}. `;
+    if (result.mode === 'heuristic') {
+      const ch = coin.market.change24h;
+      result.summary =
+        `${lead}${coin.name} (${coin.symbol.toUpperCase()}) on ${timeframe}. ` +
+        `Price ${coin.market.price} with 24h ${ch >= 0 ? '+' : ''}${Number(ch).toFixed(2)}%.`;
+      result.thesis = research.findings.filter(Boolean).join(' ');
+    } else {
+      result.summary = lead + result.summary;
+    }
+
     const report = await this.store.createAnalysis({
       userId: userId || null,
       coingeckoId: coin.id,
@@ -101,7 +100,7 @@ export class AnalysisService {
       thesis: result.thesis,
       risks: JSON.stringify(result.risks || []),
       catalysts: JSON.stringify(result.catalysts || []),
-      rawJson: JSON.stringify({ ...result, riskEngine, riskReport }),
+      rawJson: JSON.stringify({ ...result, riskEngine, riskReport, agents: desk }),
     });
 
     return {
@@ -118,8 +117,14 @@ export class AnalysisService {
       analysis: result,
       riskEngine,
       riskReport,
+      agents: desk,
       createdAt: report.createdAt,
     };
+  }
+
+  async desk(coingeckoId: string): Promise<OrchestratorResult> {
+    const { desk } = await this.orchestrator.run(coingeckoId);
+    return desk;
   }
 
   async recent(limit = 10, userId?: string) {

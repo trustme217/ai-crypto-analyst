@@ -169,7 +169,7 @@ export default function TokenPage() {
           </p>
           <div className="cta-row" style={{ marginTop: '1.1rem' }}>
             <button className="btn" onClick={runAnalysis} disabled={analyzing}>
-              {analyzing ? 'Analyzing…' : 'AI Analyze'}
+              {analyzing ? 'Running agents…' : 'AI Analyze'}
             </button>
             <button className={`btn ${watching ? 'secondary' : ''}`} onClick={toggleWatch} disabled={watchBusy}>
               {watchBusy ? 'Saving…' : watching ? 'Watching ✓' : 'Watch'}
@@ -311,7 +311,49 @@ export default function TokenPage() {
         </div>
 
         <div className="panel">
-          <h3 className="panel-title">AI brief</h3>
+          <h3 className="panel-title">AI orchestrator</h3>
+          {!analysis && <p className="muted">Run analysis to dispatch Token, Wallet, and Risk agents, then Research.</p>}
+          {analysis?.agents && (
+            <>
+              <p className="muted" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>
+                {analysis.agents.graph.map((row) => row.join(' · ')).join(' → ')}
+              </p>
+              <div className="grid-2" style={{ marginTop: '0.75rem' }}>
+                {(['token', 'wallet', 'risk', 'research'] as const).map((key) => {
+                  const a = analysis.agents!.agents[key];
+                  return (
+                    <div
+                      key={key}
+                      style={{
+                        padding: '0.75rem 0.9rem',
+                        border: '1px solid var(--line)',
+                        borderRadius: 12,
+                        background: 'var(--panel-2)',
+                      }}
+                    >
+                      <strong>
+                        {a.title} · {a.score}
+                      </strong>
+                      <ul style={{ margin: '0.4rem 0 0', paddingLeft: '1.1rem', fontSize: '0.85rem' }}>
+                        {a.checks.map((c) => (
+                          <li key={c.label}>
+                            {c.label}: {typeof c.value === 'number' ? c.value.toLocaleString() : c.value}
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="muted" style={{ marginTop: '0.45rem', fontSize: '0.8rem' }}>
+                        {a.findings[0]}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="panel">
+          <h3 className="panel-title">Final analysis</h3>
           {!analysis && <p className="muted">Run analysis to generate a scored research brief.</p>}
           {analysis && (
             <div>

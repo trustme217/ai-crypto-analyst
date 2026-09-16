@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { IsOptional, IsString } from 'class-validator';
 import { AnalysisService } from './analysis.service';
 import { OptionalJwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -21,6 +21,12 @@ export class AnalysisController {
   @Post()
   analyze(@Body() dto: AnalyzeDto, @Req() req: { user?: { userId: string } }) {
     return this.analysis.analyze(dto.coingeckoId, req.user?.userId, dto.timeframe || '1d');
+  }
+
+  @UseGuards(OptionalJwtAuthGuard)
+  @Get('desk/:coingeckoId')
+  desk(@Param('coingeckoId') coingeckoId: string) {
+    return this.analysis.desk(coingeckoId);
   }
 
   @UseGuards(OptionalJwtAuthGuard)

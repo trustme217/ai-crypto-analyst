@@ -17,7 +17,7 @@ Research desk for crypto markets + Solana + AI briefs + paper alerts/copy.
 | Alerts | Price above/below → **Telegram** (with retries) |
 | Watchlist | Guest/account sync — **Alert** shortcut from watchlist |
 | Settings | Risk, signal style, Telegram chat ID |
-| AI | Analyze token → sentiment / score / thesis |
+| AI | **Agent desk** — Token / Wallet / Risk → Research → final brief |
 | Chat | Session-based research assistant |
 | Solana | Public wallet lookup |
 | Auth | Register / login (JWT 24h) |
@@ -88,7 +88,7 @@ npm run dev:web
 - `GET  /signals?style=`
 - `GET  /holders/:id` · `GET /risk/:id` · `GET /queue` · `POST /queue/tick`
 - `GET  /smart-money/wallets|signals|events`
-- `POST /analysis` · `POST /chat` · `GET/POST /chat/sessions`
+- `POST /analysis` · `GET /analysis/desk/:id` · `POST /chat` · `GET/POST /chat/sessions`
 - `GET/POST/DELETE /alerts` · `GET/PATCH /settings` · Telegram test/chats
 - `GET  /copy-trading/leaders` · follows · trades
 - `POST /auth/register` · `/auth/login`

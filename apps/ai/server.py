@@ -94,11 +94,32 @@ def heuristic_analyze(payload: dict[str, Any]) -> dict[str, Any]:
     if contract is not None and float(contract) >= 25:
         risk_lines.append(f"Contract risk {float(contract):.0f}/100.")
 
+    agents = payload.get("agents") or {}
+    research = agents.get("research") or {}
+    token_ag = agents.get("token") or {}
+    wallet_ag = agents.get("wallet") or {}
+    risk_ag = agents.get("risk") or {}
+
+    if research.get("score") is not None:
+        score = float(research["score"])
+        if score >= 60:
+            sentiment = "bullish"
+        elif score <= 40:
+            sentiment = "bearish"
+        else:
+            sentiment = "neutral"
+
     thesis_bits = [
         f"Short-term momentum is {'positive' if momentum > 0 else 'negative'}.",
         f"24h volume is ~{vol_ratio * 100:.1f}% of market cap.",
         f"Distance from ATH is {drawdown:.1f}%.",
     ]
+    if token_ag.get("findings"):
+        thesis_bits.append("Token Agent: " + "; ".join(token_ag["findings"][:2]))
+    if wallet_ag.get("findings"):
+        thesis_bits.append("Wallet Agent: " + "; ".join(wallet_ag["findings"][:2]))
+    if risk_ag.get("findings"):
+        thesis_bits.append("Risk Agent: " + "; ".join(risk_ag["findings"][:2]))
     if risk:
         thesis_bits.append(
             f"Risk Engine: riskScore {risk_score:.0f}, liquidityScore {float(liq or 0):.0f}, "
@@ -113,7 +134,8 @@ def heuristic_analyze(payload: dict[str, Any]) -> dict[str, Any]:
         "summary": (
             f"{name} ({symbol}) looks {sentiment} on a {timeframe} horizon. "
             f"Price ${price:,.4f} with 24h {c24:+.2f}% / 7d {c7:+.2f}%. "
-            f"Heuristic score {score}/100 in the {cats} segment. "
+            f"{'Research Agent' if research.get('score') is not None else 'Heuristic'} score {score}/100 "
+            f"in the {cats} segment. "
             f"Risk Engine {risk_score:.0f}/100."
         ),
         "thesis": " ".join(thesis_bits),
@@ -188,15 +210,15 @@ def maybe_llm_analyze(payload: dict[str, Any]) -> dict[str, Any] | None:
             {
                 "role": "system",
                 "content": (
-                    "You are an AI crypto research analyst. Return ONLY valid JSON with keys: "
+                    "You are the Research Agent in a crypto desk. Return ONLY valid JSON with keys: "
                     "sentiment (bullish|bearish|neutral), score (0-100 number), summary, thesis, "
                     "risks (array of strings), catalysts (array of strings), "
                     "keyLevels ({support:number, resistance:number}). "
-                    "The payload includes risk_engine with deterministic numbers "
-                    "(riskScore, liquidityScore, holderScore, creatorScore, sellPressure, "
-                    "volumeAnomaly, contractRisk). You MUST use those values as-is. "
-                    "Do not invent or recalculate quantitative risk/liquidity/holder metrics. "
-                    "Explain why those scores matter. Include not-financial-advice in risks."
+                    "The payload includes agents (token, wallet, risk, research) with deterministic "
+                    "checks and scores, plus risk_engine numbers. "
+                    "Use the research agent composite score as score. "
+                    "Do not invent quantitative metrics. Explain Token/Wallet/Risk agent findings. "
+                    "Include not-financial-advice in risks."
                 ),
             },
             {"role": "user", "content": json.dumps(payload)},
