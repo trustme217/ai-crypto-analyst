@@ -18,6 +18,7 @@ import { RiskModule } from './risk/risk.module';
 import { RedisBullModule } from './queue/redis-bull.module';
 import { QueueWorkersModule } from './queue/queue-workers.module';
 import { BacktestModule } from './backtest/backtest.module';
+import { StrategyModule } from './strategy/strategy.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -43,6 +44,7 @@ import { HealthController } from './health.controller';
     HoldersModule,
     RiskModule,
     BacktestModule,
+    StrategyModule,
     QueueWorkersModule,
   ],
   controllers: [HealthController],

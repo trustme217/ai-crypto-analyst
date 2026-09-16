@@ -36,6 +36,9 @@ export function TopTools() {
       <Link href="/backtest" className="tool-btn">
         Backtest
       </Link>
+      <Link href="/strategies" className="tool-btn">
+        Strategy
+      </Link>
       <Link href="/heatmap" className="tool-btn">
         Heatmap
       </Link>

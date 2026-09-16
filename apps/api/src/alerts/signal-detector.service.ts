@@ -6,6 +6,7 @@ import { HoldersService } from '../holders/holders.service';
 import { RiskEngineService } from '../risk/risk-engine.service';
 import { TokenScoreService } from '../scoring/token-score.service';
 import { BacktestService } from '../backtest/backtest.service';
+import { StrategyService } from '../strategy/strategy.service';
 import { formatSignalMessage, signalTitle } from './signal-format';
 import type { SignalDraft, SignalPayload, SignalType } from './signal.types';
 
@@ -21,6 +22,7 @@ export class SignalDetectorService {
     private readonly risk: RiskEngineService,
     private readonly tokenScore: TokenScoreService,
     private readonly backtest: BacktestService,
+    private readonly strategies: StrategyService,
   ) {}
 
   async scan(): Promise<number> {
@@ -260,6 +262,22 @@ export class SignalDetectorService {
       price: coin.market.price,
       volume24h: coin.market.volume24h,
       marketCap: coin.market.marketCap,
+    });
+    await this.strategies.consider({
+      coingeckoId: coin.id,
+      symbol: coin.symbol,
+      name: coin.name,
+      price: coin.market.price,
+      tokenScore: scores.score,
+      smartMoneyScore: sm ?? scores.smartMoney,
+      liquidityScore: scores.liquidity,
+      liquidity: coin.market.volume24h,
+      volume24h: coin.market.volume24h,
+      marketCap: coin.market.marketCap,
+      momentum: scores.momentum,
+      holderQuality: scores.holderQuality,
+      riskScore: risk.riskScore,
+      sellPressure: risk.sellPressure,
     });
 
     const prev = await this.store.lastMetricSnapshot(coin.id);

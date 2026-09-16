@@ -370,6 +370,43 @@ model ScoredSignal {
   @@index([coingeckoId, createdAt])
 }
 
+/// JSON strategies: Signal → Strategy → Risk Engine → Paper Trade
+model Strategy {
+  id            String   @id @default(cuid())
+  name          String
+  slug          String   @unique
+  conditionsJson String
+  side          String   @default("long")
+  maxRiskScore  Float    @default(70)
+  notionalUsd   Float    @default(250)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  fills         StrategyFill[]
+}
+
+model StrategyFill {
+  id               String   @id @default(cuid())
+  strategyId       String
+  strategy         Strategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+  coingeckoId      String
+  symbol           String
+  name             String
+  side             String
+  quantity         Float
+  priceUsd         Float
+  notionalUsd      Float
+  tokenScore       Float
+  smartMoneyScore  Float
+  riskScore        Float
+  fingerprint      String   @unique
+  note             String?
+  createdAt        DateTime @default(now())
+
+  @@index([strategyId, createdAt])
+  @@index([coingeckoId, createdAt])
+}
+
 /// Strategy backtest runs
 model BacktestRun {
   id          String    @id @default(cuid())

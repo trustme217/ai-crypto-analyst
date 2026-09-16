@@ -641,6 +641,44 @@ export const api = {
     }>('/backtest'),
   fillBacktest: () =>
     request<{ ok: boolean; filled: number; totalSignals: number }>('/backtest/fill', { method: 'POST' }),
+  strategies: () =>
+    request<{
+      flow: string[];
+      disclaimer: string;
+      strategies: Array<{
+        id: string;
+        name: string;
+        slug: string;
+        definition: { name: string; conditions: Record<string, Record<string, number>> };
+        side: string;
+        maxRiskScore: number;
+        notionalUsd: number;
+        active: boolean;
+        createdAt: string;
+      }>;
+      fills: Array<{
+        id: string;
+        strategyName: string;
+        coingeckoId: string;
+        symbol: string;
+        name: string;
+        side: string;
+        quantity: number;
+        priceUsd: number;
+        notionalUsd: number;
+        tokenScore: number;
+        smartMoneyScore: number;
+        riskScore: number;
+        note: string | null;
+        createdAt: string;
+      }>;
+    }>('/strategies'),
+  runStrategies: () =>
+    request<{
+      ok: boolean;
+      evaluated: number;
+      fills: Array<{ id: string; strategyName: string; symbol: string; side: string; notionalUsd: number }>;
+    }>('/strategies/run', { method: 'POST' }),
 };
 
 export function formatUsd(n: number, digits = 2) {

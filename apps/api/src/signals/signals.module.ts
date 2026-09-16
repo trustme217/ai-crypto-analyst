@@ -7,9 +7,18 @@ import { SmartMoneyModule } from '../smart-money/smart-money.module';
 import { HoldersModule } from '../holders/holders.module';
 import { RiskModule } from '../risk/risk.module';
 import { BacktestModule } from '../backtest/backtest.module';
+import { StrategyModule } from '../strategy/strategy.module';
 
 @Module({
-  imports: [MarketModule, ScoringModule, SmartMoneyModule, HoldersModule, RiskModule, BacktestModule],
+  imports: [
+    MarketModule,
+    ScoringModule,
+    SmartMoneyModule,
+    HoldersModule,
+    RiskModule,
+    BacktestModule,
+    StrategyModule,
+  ],
   controllers: [SignalsController],
   providers: [SignalsService],
 })

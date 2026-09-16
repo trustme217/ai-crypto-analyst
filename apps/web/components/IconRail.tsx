@@ -9,6 +9,7 @@ const LINKS = [
   { href: '/chat', label: 'Chat', icon: 'chat' },
   { href: '/signals', label: 'Signals', icon: 'signal' },
   { href: '/backtest', label: 'Backtest', icon: 'chart' },
+  { href: '/strategies', label: 'Strategy', icon: 'copy' },
   { href: '/smart-money', label: 'Smart $', icon: 'copy' },
   { href: '/heatmap', label: 'Heatmap', icon: 'chart' },
   { href: '/analyze', label: 'Analyze', icon: 'chart' },
