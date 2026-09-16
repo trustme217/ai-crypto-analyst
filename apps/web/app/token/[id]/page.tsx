@@ -6,12 +6,14 @@ import { useEffect, useState } from 'react';
 import { api, formatPct, formatUsd, type AnalysisResult, type CoinDetail } from '@/lib/api';
 
 type HolderIntel = Awaited<ReturnType<typeof api.holders>>;
+type RiskReport = Awaited<ReturnType<typeof api.riskEngine>>;
 
 export default function TokenPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
   const [coin, setCoin] = useState<CoinDetail | null>(null);
   const [holders, setHolders] = useState<HolderIntel | null>(null);
+  const [risk, setRisk] = useState<RiskReport | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
@@ -27,9 +29,15 @@ export default function TokenPage() {
         setCoin(c);
         setWatching(watched);
         try {
-          setHolders(await api.holders(c.id, c.symbol));
+          const [h, r] = await Promise.all([
+            api.holders(c.id, c.symbol),
+            api.riskEngine(c.id, c.symbol),
+          ]);
+          setHolders(h);
+          setRisk(r);
         } catch {
           setHolders(null);
+          setRisk(null);
         }
       })
       .catch((e: Error) => setError(e.message))
@@ -252,6 +260,57 @@ export default function TokenPage() {
         </div>
 
         <div className="panel">
+          <h3 className="panel-title">Risk Engine</h3>
+          {!risk && <p className="muted">Loading deterministic risk…</p>}
+          {risk && (
+            <>
+              <p className="muted" style={{ fontSize: '0.8rem', marginBottom: '0.75rem' }}>
+                Calculated before AI. LLM may explain these numbers — it does not invent them.
+              </p>
+              <table className="table">
+                <tbody>
+                  {(
+                    [
+                      ['Liquidity', risk.breakdown.liquidity],
+                      ['Holder concentration', risk.breakdown.holderConcentration],
+                      ['Creator holdings', risk.breakdown.creatorHoldings],
+                      ['Sell pressure', risk.breakdown.sellPressure],
+                      ['Volume anomaly', risk.breakdown.volumeAnomaly],
+                      ['Contract risk', risk.breakdown.contractRisk],
+                    ] as const
+                  ).map(([label, value]) => (
+                    <tr key={label}>
+                      <td>{label}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)', textAlign: 'right' }}>{value}</td>
+                    </tr>
+                  ))}
+                  <tr>
+                    <td>
+                      <strong>Risk Score</strong>
+                    </td>
+                    <td style={{ fontFamily: 'var(--font-mono)', textAlign: 'right' }}>
+                      <strong>{risk.riskScore}</strong>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <pre
+                style={{
+                  marginTop: '0.85rem',
+                  padding: '0.75rem 0.9rem',
+                  borderRadius: 12,
+                  background: 'var(--panel-2)',
+                  fontSize: '0.8rem',
+                  overflowX: 'auto',
+                }}
+              >
+                {JSON.stringify(risk.aiJson, null, 2)}
+              </pre>
+            </>
+          )}
+        </div>
+
+        <div className="panel">
           <h3 className="panel-title">AI brief</h3>
           {!analysis && <p className="muted">Run analysis to generate a scored research brief.</p>}
           {analysis && (
@@ -287,6 +346,22 @@ export default function TokenPage() {
                   <li key={r}>{r}</li>
                 ))}
               </ul>
+              {(analysis.riskEngine || analysis.analysis.riskEngine) && (
+                <>
+                  <h3 className="panel-title">Risk Engine (input to AI)</h3>
+                  <pre
+                    style={{
+                      padding: '0.75rem 0.9rem',
+                      borderRadius: 12,
+                      background: 'var(--panel-2)',
+                      fontSize: '0.8rem',
+                      overflowX: 'auto',
+                    }}
+                  >
+                    {JSON.stringify(analysis.riskEngine || analysis.analysis.riskEngine, null, 2)}
+                  </pre>
+                </>
+              )}
             </div>
           )}
         </div>

@@ -10,6 +10,7 @@ Research desk for crypto markets + Solana + AI briefs + paper alerts/copy.
 | Signals | **Token Score** (SM 30% / Liq 15% / Vol 15% / Mom 15% / Hold 15% / Risk 10%) — deterministic |
 | Smart money | Tracked wallets + **RPC ingest → normalized events → analytics** (`/smart-money`) |
 | Holders | Distribution intel (top 10/20, SM/whale/creator, concentration alerts) |
+| Risk | **Risk Engine** (liq / holders / creator / sell / volume / contract) before AI |
 | Portfolio | Paper positions with live PnL |
 | Copy trading | Follow demo desks → **simulated paper fills** |
 | Alerts | Price above/below → **Telegram** (with retries) |
@@ -75,6 +76,7 @@ npm run dev:web
 
 - `GET  /market/overview` · `/market/search` · `/market/coins/:id`
 - `GET  /signals?style=`
+- `GET  /holders/:id` · `GET /risk/:id` · `GET /smart-money/wallets|signals|events`
 - `POST /analysis` · `POST /chat` · `GET/POST /chat/sessions`
 - `GET/POST/DELETE /alerts` · `GET/PATCH /settings` · Telegram test/chats
 - `GET  /copy-trading/leaders` · follows · trades

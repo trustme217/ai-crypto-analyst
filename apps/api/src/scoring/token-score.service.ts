@@ -34,6 +34,8 @@ export type TokenScoreInput = {
   smartMoneyScore?: number | null;
   /** Optional holder concentration proxy 0–100 */
   holderQualityScore?: number | null;
+  /** Optional Risk Engine composite (higher = riskier) */
+  riskScore?: number | null;
 };
 
 function clamp(n: number, lo = 0, hi = 100) {
@@ -80,11 +82,16 @@ export class TokenScoreService {
       holderQuality = 50;
     }
 
-    // Risk 0–100 (higher = riskier): volatility + thin liquidity
-    const volRisk = Math.min(55, Math.abs(c24) * 3.5 + Math.abs(c7) * 0.8);
-    const thinRisk = volMcap < 0.02 ? 25 : volMcap < 0.05 ? 12 : 0;
-    const smallCapRisk = input.marketCap < 50e6 ? 20 : input.marketCap < 200e6 ? 10 : 0;
-    const risk = round1(clamp(volRisk + thinRisk + smallCapRisk));
+    // Risk 0–100 (higher = riskier): prefer Risk Engine; fallback is vol + thin liq
+    let risk: number;
+    if (input.riskScore != null) {
+      risk = round1(clamp(input.riskScore));
+    } else {
+      const volRisk = Math.min(55, Math.abs(c24) * 3.5 + Math.abs(c7) * 0.8);
+      const thinRisk = volMcap < 0.02 ? 25 : volMcap < 0.05 ? 12 : 0;
+      const smallCapRisk = input.marketCap < 50e6 ? 20 : input.marketCap < 200e6 ? 10 : 0;
+      risk = round1(clamp(volRisk + thinRisk + smallCapRisk));
+    }
 
     // Smart money: real score when provided; else aligned momentum+volume proxy (neutral-ish)
     let smartMoney: number;

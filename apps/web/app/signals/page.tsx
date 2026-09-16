@@ -157,6 +157,13 @@ export default function SignalsPage() {
                 momentum: signals[0].scores?.momentum,
                 holderQuality: signals[0].scores?.holderQuality,
                 risk: signals[0].scores?.risk,
+                riskEngine: signals[0].riskEngine
+                  ? {
+                      riskScore: signals[0].riskEngine.riskScore,
+                      liquidityScore: signals[0].riskEngine.liquidityScore,
+                      holderScore: signals[0].riskEngine.holderScore,
+                    }
+                  : undefined,
               },
               null,
               2,

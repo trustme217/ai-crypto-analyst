@@ -2,6 +2,8 @@ import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { StoreService } from '../store/store.service';
 import { MarketService } from '../market/market.service';
+import { HoldersService } from '../holders/holders.service';
+import { RiskEngineService } from '../risk/risk-engine.service';
 
 export type AiAnalysisResult = {
   sentiment: 'bullish' | 'bearish' | 'neutral';
@@ -21,6 +23,8 @@ export class AnalysisService {
   constructor(
     private readonly store: StoreService,
     private readonly market: MarketService,
+    private readonly holders: HoldersService,
+    private readonly riskEngine: RiskEngineService,
     private readonly config: ConfigService,
   ) {
     this.aiUrl = this.config.get<string>('AI_SERVICE_URL') || 'http://127.0.0.1:8001';
@@ -28,6 +32,26 @@ export class AnalysisService {
 
   async analyze(coingeckoId: string, userId?: string, timeframe = '1d') {
     const coin = await this.market.getCoin(coingeckoId);
+    const intel = await this.holders.getIntelligence({
+      coingeckoId: coin.id,
+      symbol: coin.symbol,
+      marketCap: coin.market.marketCap,
+      marketCapRank: null,
+      volume24h: coin.market.volume24h,
+    });
+    const riskReport = await this.riskEngine.evaluate({
+      coingeckoId: coin.id,
+      symbol: coin.symbol,
+      marketCap: coin.market.marketCap,
+      volume24h: coin.market.volume24h,
+      change24h: coin.market.change24h,
+      change7d: coin.market.change7d,
+      categories: coin.categories,
+      holderConcentration: intel.holderConcentration,
+      creatorOwnership: intel.creatorOwnership,
+    });
+    const riskEngine = this.riskEngine.toAiJson(riskReport);
+
     const payload = {
       coingecko_id: coin.id,
       symbol: coin.symbol,
@@ -36,6 +60,17 @@ export class AnalysisService {
       market: coin.market,
       categories: coin.categories,
       description: coin.description,
+      risk_engine: riskEngine,
+      holder_intelligence: {
+        holders: intel.holders,
+        top10Pct: intel.top10Pct,
+        top20Pct: intel.top20Pct,
+        smartMoneyOwnership: intel.smartMoneyOwnership,
+        whaleOwnership: intel.whaleOwnership,
+        creatorOwnership: intel.creatorOwnership,
+        holderQualityScore: intel.holderQualityScore,
+        alerts: intel.alerts,
+      },
     };
 
     let result: AiAnalysisResult;
@@ -66,7 +101,7 @@ export class AnalysisService {
       thesis: result.thesis,
       risks: JSON.stringify(result.risks || []),
       catalysts: JSON.stringify(result.catalysts || []),
-      rawJson: JSON.stringify(result),
+      rawJson: JSON.stringify({ ...result, riskEngine, riskReport }),
     });
 
     return {
@@ -81,6 +116,8 @@ export class AnalysisService {
       },
       timeframe,
       analysis: result,
+      riskEngine,
+      riskReport,
       createdAt: report.createdAt,
     };
   }

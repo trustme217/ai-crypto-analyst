@@ -3,6 +3,7 @@ import { MarketService } from '../market/market.service';
 import { TokenScoreService, type TokenScoreBreakdown } from '../scoring/token-score.service';
 import { SmartMoneyService } from '../smart-money/smart-money.service';
 import { HoldersService } from '../holders/holders.service';
+import { RiskEngineService, type TokenRiskReport } from '../risk/risk-engine.service';
 
 export type TradingSignal = {
   id: string;
@@ -22,6 +23,7 @@ export type TradingSignal = {
   volMcap?: number;
   scores: TokenScoreBreakdown;
   holderAlerts?: Array<{ title: string; risk: string; detail: string }>;
+  riskEngine?: TokenRiskReport;
   generatedAt: string;
 };
 
@@ -45,6 +47,7 @@ export class SignalsService {
     private readonly tokenScore: TokenScoreService,
     private readonly smartMoney: SmartMoneyService,
     private readonly holders: HoldersService,
+    private readonly riskEngine: RiskEngineService,
   ) {}
 
   async list(style: 'conservative' | 'balanced' | 'aggressive' = 'balanced'): Promise<{
@@ -72,12 +75,23 @@ export class SignalsService {
       const volMcap = c.market_cap > 0 ? c.total_volume / c.market_cap : 0;
 
       const sm = await this.smartMoney.scoreForSymbol(c.symbol.toUpperCase(), 60);
-      const hold = await this.holders.qualityScoreFor(
-        c.id,
-        c.symbol,
-        c.market_cap,
-        c.market_cap_rank,
-      );
+      const hold = await this.holders.getIntelligence({
+        coingeckoId: c.id,
+        symbol: c.symbol,
+        marketCap: c.market_cap,
+        marketCapRank: c.market_cap_rank,
+        volume24h: c.total_volume,
+      });
+      const risk = await this.riskEngine.evaluate({
+        coingeckoId: c.id,
+        symbol: c.symbol,
+        marketCap: c.market_cap,
+        volume24h: c.total_volume,
+        change24h: change,
+        change7d,
+        holderConcentration: hold.holderConcentration,
+        creatorOwnership: hold.creatorOwnership,
+      });
       const scores = this.tokenScore.score({
         symbol: c.symbol,
         price,
@@ -88,6 +102,7 @@ export class SignalsService {
         marketCapRank: c.market_cap_rank,
         smartMoneyScore: sm,
         holderQualityScore: hold.holderQualityScore,
+        riskScore: risk.riskScore,
       });
 
       let side: TradingSignal['side'] = 'neutral';
@@ -138,6 +153,7 @@ export class SignalsService {
           risk: a.risk,
           detail: a.detail,
         })),
+        riskEngine: risk,
         generatedAt: new Date().toISOString(),
       });
     }

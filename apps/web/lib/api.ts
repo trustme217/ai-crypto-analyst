@@ -65,6 +65,24 @@ export type AnalysisResult = {
     catalysts: string[];
     keyLevels?: { support?: number; resistance?: number };
     mode: 'llm' | 'heuristic';
+    riskEngine?: {
+      riskScore: number;
+      liquidityScore: number;
+      holderScore: number;
+      creatorScore?: number;
+      sellPressure?: number;
+      volumeAnomaly?: number;
+      contractRisk?: number;
+    } | null;
+  };
+  riskEngine?: {
+    riskScore: number;
+    liquidityScore: number;
+    holderScore: number;
+    creatorScore?: number;
+    sellPressure?: number;
+    volumeAnomaly?: number;
+    contractRisk?: number;
   };
   createdAt: string;
 };
@@ -94,6 +112,24 @@ export type TradingSignal = {
     momentum: number;
     holderQuality: number;
     risk: number;
+  };
+  holderAlerts?: Array<{ title: string; risk: string; detail: string }>;
+  riskEngine?: {
+    riskScore: number;
+    liquidityScore: number;
+    holderScore: number;
+    creatorScore: number;
+    sellPressure: number;
+    volumeAnomaly: number;
+    contractRisk: number;
+    breakdown: {
+      liquidity: number;
+      holderConcentration: number;
+      creatorHoldings: number;
+      sellPressure: number;
+      volumeAnomaly: number;
+      contractRisk: number;
+    };
   };
   generatedAt: string;
 };
@@ -197,6 +233,39 @@ export const api = {
       previousSnapshotAt: string | null;
     }>(
       `/holders/${encodeURIComponent(coingeckoId)}${symbol ? `?symbol=${encodeURIComponent(symbol)}` : ''}`,
+    ),
+  riskEngine: (coingeckoId: string, symbol?: string) =>
+    request<{
+      token: string;
+      coingeckoId: string;
+      riskScore: number;
+      liquidityScore: number;
+      holderScore: number;
+      creatorScore: number;
+      sellPressure: number;
+      volumeAnomaly: number;
+      contractRisk: number;
+      breakdown: {
+        liquidity: number;
+        holderConcentration: number;
+        creatorHoldings: number;
+        sellPressure: number;
+        volumeAnomaly: number;
+        contractRisk: number;
+      };
+      source: string;
+      generatedAt: string;
+      aiJson: {
+        riskScore: number;
+        liquidityScore: number;
+        holderScore: number;
+        creatorScore: number;
+        sellPressure: number;
+        volumeAnomaly: number;
+        contractRisk: number;
+      };
+    }>(
+      `/risk/${encodeURIComponent(coingeckoId)}${symbol ? `?symbol=${encodeURIComponent(symbol)}` : ''}`,
     ),
   analyze: (coingeckoId: string, timeframe = '1d') =>
     request<AnalysisResult>('/analysis', {

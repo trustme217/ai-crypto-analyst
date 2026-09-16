@@ -35,6 +35,7 @@ def heuristic_analyze(payload: dict[str, Any]) -> dict[str, Any]:
     symbol = str(payload.get("symbol") or "?").upper()
     timeframe = payload.get("timeframe") or "1d"
     categories = payload.get("categories") or []
+    risk = payload.get("risk_engine") or {}
 
     c24 = float(market.get("change24h") or 0)
     c7 = float(market.get("change7d") or 0)
@@ -45,10 +46,19 @@ def heuristic_analyze(payload: dict[str, Any]) -> dict[str, Any]:
     drawdown = float(market.get("athChange") or 0)
     vol_ratio = vol / mcap
 
+    risk_score = float(risk.get("riskScore") if risk.get("riskScore") is not None else 50)
+    liq = risk.get("liquidityScore")
+    hold = risk.get("holderScore")
+    creator = risk.get("creatorScore")
+    sell = risk.get("sellPressure")
+    vol_anom = risk.get("volumeAnomaly")
+    contract = risk.get("contractRisk")
+
     momentum = 0.45 * c24 + 0.35 * (c7 / 3) + 0.20 * (c30 / 6)
     liquidity_boost = 8 if vol_ratio > 0.12 else 3 if vol_ratio > 0.05 else -2
     recovery_penalty = -6 if drawdown < -70 else -2 if drawdown < -40 else 2
-    score = round(clamp(50 + momentum + liquidity_boost + recovery_penalty, 0, 100), 1)
+    risk_penalty = (risk_score - 50) * 0.25
+    score = round(clamp(50 + momentum + liquidity_boost + recovery_penalty - risk_penalty, 0, 100), 1)
 
     if score >= 60:
         sentiment = "bullish"
@@ -69,28 +79,49 @@ def heuristic_analyze(payload: dict[str, Any]) -> dict[str, Any]:
     if sentiment == "bearish":
         catalysts[0] = "A reclaim of the 24h high with rising volume would be the first repair signal."
 
+    risk_lines = [
+        "Crypto markets are highly volatile; this is not financial advice.",
+        f"Risk Engine score {risk_score:.0f}/100 (deterministic — not LLM).",
+    ]
+    if liq is not None:
+        risk_lines.append(f"Liquidity {float(liq):.0f}/100.")
+    if hold is not None:
+        risk_lines.append(f"Holder concentration {float(hold):.0f}/100.")
+    if creator is not None and float(creator) >= 10:
+        risk_lines.append(f"Creator holdings {float(creator):.0f}/100.")
+    if sell is not None and float(sell) >= 55:
+        risk_lines.append(f"Sell pressure {float(sell):.0f}/100.")
+    if contract is not None and float(contract) >= 25:
+        risk_lines.append(f"Contract risk {float(contract):.0f}/100.")
+
+    thesis_bits = [
+        f"Short-term momentum is {'positive' if momentum > 0 else 'negative'}.",
+        f"24h volume is ~{vol_ratio * 100:.1f}% of market cap.",
+        f"Distance from ATH is {drawdown:.1f}%.",
+    ]
+    if risk:
+        thesis_bits.append(
+            f"Risk Engine: riskScore {risk_score:.0f}, liquidityScore {float(liq or 0):.0f}, "
+            f"holderScore {float(hold or 0):.0f}"
+            + (f", sellPressure {float(sell):.0f}" if sell is not None else "")
+            + "."
+        )
+
     return {
         "sentiment": sentiment,
         "score": score,
         "summary": (
             f"{name} ({symbol}) looks {sentiment} on a {timeframe} horizon. "
             f"Price ${price:,.4f} with 24h {c24:+.2f}% / 7d {c7:+.2f}%. "
-            f"Heuristic score {score}/100 in the {cats} segment."
+            f"Heuristic score {score}/100 in the {cats} segment. "
+            f"Risk Engine {risk_score:.0f}/100."
         ),
-        "thesis": (
-            f"Short-term momentum is {'positive' if momentum > 0 else 'negative'}. "
-            f"24h volume is ~{vol_ratio * 100:.1f}% of market cap, "
-            f"{'suggesting active participation' if vol_ratio > 0.05 else 'suggesting quieter flow'}. "
-            f"Distance from ATH is {drawdown:.1f}%."
-        ),
-        "risks": [
-            "Crypto markets are highly volatile; this is not financial advice.",
-            "Heuristic model ignores on-chain flows, unlocks, and news catalysts.",
-            "Liquidity can disappear quickly on thinner venues.",
-        ],
+        "thesis": " ".join(thesis_bits),
+        "risks": risk_lines,
         "catalysts": catalysts,
         "keyLevels": {"support": round(support, 6), "resistance": round(resistance, 6)},
         "mode": "heuristic",
+        "riskEngine": risk or None,
     }
 
 
@@ -161,7 +192,11 @@ def maybe_llm_analyze(payload: dict[str, Any]) -> dict[str, Any] | None:
                     "sentiment (bullish|bearish|neutral), score (0-100 number), summary, thesis, "
                     "risks (array of strings), catalysts (array of strings), "
                     "keyLevels ({support:number, resistance:number}). "
-                    "Be concise and include a not-financial-advice tone in risks."
+                    "The payload includes risk_engine with deterministic numbers "
+                    "(riskScore, liquidityScore, holderScore, creatorScore, sellPressure, "
+                    "volumeAnomaly, contractRisk). You MUST use those values as-is. "
+                    "Do not invent or recalculate quantitative risk/liquidity/holder metrics. "
+                    "Explain why those scores matter. Include not-financial-advice in risks."
                 ),
             },
             {"role": "user", "content": json.dumps(payload)},
@@ -181,6 +216,7 @@ def maybe_llm_analyze(payload: dict[str, Any]) -> dict[str, Any] | None:
             "catalysts": list(data.get("catalysts") or []),
             "keyLevels": data.get("keyLevels"),
             "mode": "llm",
+            "riskEngine": payload.get("risk_engine") or None,
         }
     except (json.JSONDecodeError, TypeError, ValueError):
         return None
