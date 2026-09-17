@@ -842,6 +842,13 @@ export class StoreService {
     });
   }
 
+  async cancelPendingSignalDeliveries(userId: string, reason: string) {
+    return this.prisma.signalDelivery.updateMany({
+      where: { userId, status: { in: ['pending', 'retry'] } },
+      data: { status: 'failed', lastError: reason },
+    });
+  }
+
   async markSignalDeliveryFailed(id: string, attempts: number, error: string) {
     if (attempts >= 5) {
       return this.prisma.signalDelivery.update({

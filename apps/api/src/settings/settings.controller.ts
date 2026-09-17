@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { IsBoolean, IsIn, IsOptional, IsString } from 'class-validator';
 import { SettingsService } from './settings.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -79,6 +79,11 @@ export class SettingsController {
   @Post('telegram/test')
   testTelegram(@Req() req: { user: { userId: string } }, @Body() dto: TelegramTestDto) {
     return this.settings.testTelegram(req.user.userId, dto.chatId);
+  }
+
+  @Delete('telegram')
+  disconnectTelegram(@Req() req: { user: { userId: string } }) {
+    return this.settings.disconnectTelegram(req.user.userId);
   }
 
   @Get('telegram/chats')

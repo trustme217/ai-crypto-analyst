@@ -63,6 +63,7 @@ Optional: `OPENAI_API_KEY` for LLM mode. Heuristic AI works without it.
 2. Restart API; message the bot `/start`.
 3. Settings → pick chat ID → enable Telegram → Send test.
 4. The alert queue scans engines every 60s and pushes signal cards (smart-money cluster, score/risk/liquidity/volume/whale/AI, plus PRICE levels you set on **Alerts**). Failed sends retry with backoff.
+5. Settings → **Remove Telegram connection** clears the chat ID, disables alerts, and cancels pending deliveries for that account.
 
 ### Auth
 
@@ -93,7 +94,7 @@ npm run dev:web
 - `GET  /holders/:id` · `GET /risk/:id` · `GET /queue` · `POST /queue/tick`
 - `GET  /smart-money/wallets|signals|events`
 - `POST /analysis` · `GET /analysis/desk/:id` · `POST /chat` · `GET/POST /chat/sessions`
-- `GET/POST/DELETE /alerts` · `GET /alerts/signals` · `POST /alerts/scan` · `GET/PATCH /settings` · Telegram test/chats
+- `GET/POST/DELETE /alerts` · `GET /alerts/signals` · `POST /alerts/scan` · `GET/PATCH /settings` · `DELETE /settings/telegram` · Telegram test/chats
 - `GET  /copy-trading/leaders` · follows · trades
 - `POST /auth/register` · `/auth/login`
 

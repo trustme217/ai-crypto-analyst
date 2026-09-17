@@ -12,6 +12,7 @@ export default function SettingsPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
   const [recentChats, setRecentChats] = useState<Array<{ chatId: string; name: string }>>([]);
 
   async function load() {
@@ -88,6 +89,27 @@ export default function SettingsPage() {
       setError((err as Error).message);
     } finally {
       setTesting(false);
+    }
+  }
+
+  async function onDisconnectTelegram() {
+    if (!settings) return;
+    setDisconnecting(true);
+    setMessage(null);
+    setError(null);
+    try {
+      const updated = (await api.disconnectTelegram()) as Settings;
+      setSettings({
+        ...settings,
+        ...updated,
+        telegramAlerts: false,
+        telegramChatId: null,
+      });
+      setMessage('Telegram disconnected. This account will not receive signal alerts until you connect again.');
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setDisconnecting(false);
     }
   }
 
@@ -280,6 +302,14 @@ export default function SettingsPage() {
               onClick={onTestTelegram}
             >
               {testing ? 'Sending…' : 'Send test to Telegram'}
+            </button>
+            <button
+              className="btn secondary"
+              type="button"
+              disabled={disconnecting || !settings.telegramChatId?.trim()}
+              onClick={onDisconnectTelegram}
+            >
+              {disconnecting ? 'Removing…' : 'Remove Telegram connection'}
             </button>
           </div>
         </form>

@@ -68,6 +68,15 @@ export class SettingsService {
     return { ok: true, chatId };
   }
 
+  async disconnectTelegram(userId: string) {
+    await this.store.updateSettings(userId, {
+      telegramChatId: null,
+      telegramAlerts: false,
+    });
+    await this.store.cancelPendingSignalDeliveries(userId, 'Telegram disconnected');
+    return this.get(userId);
+  }
+
   async recentTelegramChats() {
     try {
       return await this.telegram.recentChatIds();

@@ -573,6 +573,12 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ chatId }),
     }),
+  disconnectTelegram: () =>
+    request<{
+      telegramAlerts: boolean;
+      telegramChatId: string | null;
+      telegramBotConfigured?: boolean;
+    }>('/settings/telegram', { method: 'DELETE' }),
   telegramChats: () =>
     request<{
       configured: boolean;
